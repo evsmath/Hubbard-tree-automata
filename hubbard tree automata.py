@@ -1475,9 +1475,9 @@ def mating_dyadics(theta1, theta2):
 
 ####
 
-##################
-# GATHERING DATA #
-##################
+###################
+# GATHERING DATA! #
+###################
 
 ####
 
