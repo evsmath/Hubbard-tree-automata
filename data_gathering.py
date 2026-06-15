@@ -112,6 +112,55 @@ def plot_zero_entropy_angles(theta1, N):
     
     return
 
+####
+
+def ignore_trivial(A):
+    # Input is an automaton A representing ray connections in a mating
+    # Removes the self-transitions, corresponding to the trivial angles 1/2 and 0,
+    # And then trims the automaton
+    # Usefulness: If the only ray connections are the trivial ones and preimages, the new automaton is empty
+    
+    M = A.matrix
+    states = A.states
+    size = A.size
+    
+    new_M = M.copy()
+    
+    for j in range(0, size):
+        if new_M[j][j] == 1:
+            new_M[j][j] = 0
+    
+    new_A = hta.trim(hta.automaton(new_M, states))
+    
+    return new_A
+
+####
+
+def plot_no_non_trivial_ray_connections(theta1, N):
+    
+    denom = 2 ** N
+    
+    dots_x = []
+    dots_y = []
+    
+    for a in range(1, denom):
+        
+        theta2 = Fraction(a, denom)
+        B = ignore_trivial(hta.mating_dyadics(theta1, theta2))
+        
+        if B.size == 0:
+            dots_x.append(math.cos(theta2 * math.tau))
+            dots_y.append(math.sin(theta2 * math.tau))
+            
+    plt.plot(dots_x, dots_y, '.')
+    plt.gca().set_aspect("equal")
+    plt.xlim(-1.2, 1.2)
+    plt.ylim(-1.2, 1.2)
+    plt.suptitle(f"No non-trivial ray connections on mating with {theta1}")
+    plt.show()
+
+####
+
 def main1():
     
     theta1 = Fraction(1,4)
