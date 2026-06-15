@@ -237,4 +237,3 @@ def main3():
         print(hta.forbidden_region_dyadic(theta))
         
     return
-
