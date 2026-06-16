@@ -13,6 +13,11 @@ from numpy import linalg
 from fractions import Fraction
 import matplotlib.pyplot as plt
 
+import scipy
+from scipy import sparse
+from scipy.sparse import csr_array
+from scipy.sparse.csgraph import connected_components
+
 import hubbard_tree_automata as hta
 
 ####
@@ -136,7 +141,7 @@ def ignore_trivial(A):
 
 ####
 
-def plot_no_non_trivial_ray_connections(theta1, N):
+def plot_only_dyadic_ray_connections(theta1, N):
     
     denom = 2 ** N
     
@@ -156,7 +161,7 @@ def plot_no_non_trivial_ray_connections(theta1, N):
     plt.gca().set_aspect("equal")
     plt.xlim(-1.2, 1.2)
     plt.ylim(-1.2, 1.2)
-    plt.suptitle(f"No non-trivial ray connections on mating with {theta1}")
+    plt.suptitle(f"No non-dyadic ray connections on mating with {theta1}")
     plt.show()
 
 ####
@@ -228,12 +233,52 @@ def main2():
 
 ####
 
-def main3():
+def is_weakly_connected(M):
     
-    for n in range(6,20):
-        
-        theta = Fraction(5, 2**n)
-        
-        print(hta.forbidden_region_dyadic(theta))
-        
+    n_components, labels = connected_components(csgraph = M, directed = True, connection = 'weak')
+    
+    if n_components == 1:
+        return True
+    
+    else:
+        return False
+    
+    
+def not_weakly_connected_up_to(N):
+    
+    denom = 2 **N
+    
+    for a in range(1, denom):
+        for b in range(a, denom):
+            
+            if a + b != denom: # Weirdness if conjugate: more than 2 components possibly
+            
+                theta1 = Fraction(a, denom)
+                theta2 = Fraction(b, denom)
+                
+                A = hta.mating_dyadics(theta1, theta2)
+                M = A.matrix
+                
+                n_components, labels = connected_components(csgraph = M, directed = True, connection = 'weak')
+                
+                if not is_weakly_connected(M):
+                    
+                    print(f'Mating {theta1} with {theta2} not weakly connected, size = {A.size}, number = {n_components}')
+                
     return
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
