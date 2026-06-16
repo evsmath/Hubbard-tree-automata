@@ -22,19 +22,19 @@ import hubbard_tree_automata as hta
 
 ####
 
-def size_of_mating_with(theta1, N):
-    # Fixed an angle theta1
-    # Prints the sizes of all the matings of theta1 with a/2**N
+def size_of_mating_with(theta, N):
+    # Fixed an angle theta
+    # Prints the sizes of all the mating automata of theta with a/2**N
 
     denom = 2 ** N
     
     for a in range(1, denom):
         
         theta2 = Fraction(a, denom)
-        A = hta.mating_dyadics(theta1, theta2)
+        A = hta.mating_dyadics(theta, theta2)
         size = A.size
         
-        print(f'Mating {theta1} with {theta2}: size = {size}')
+        print(f'Mating {theta} with {theta2}: size = {size}')
         
     return
 
@@ -70,19 +70,19 @@ def entropy(M):
     
 ####
 
-def entropy_of_mating_with(theta1, N):
-    # Fixed an angle theta1
-    # Prints the entropies of all the matings of theta1 with a/2**N
+def entropy_of_mating_with(theta, N):
+    # Fixed an angle theta
+    # Prints the entropies of all the matings of theta with a/2**N
 
     denom = 2 ** N
     
     for a in range(1, denom):
         
         theta2 = Fraction(a, denom)
-        A = hta.mating_dyadics(theta1, theta2)
+        A = hta.mating_dyadics(theta, theta2)
         ent = round(entropy(A.matrix), 8)
         
-        print(f'Mating {theta1} with {theta2}: entropy = {ent}')
+        print(f'Mating {theta} with {theta2}: entropy = {ent}')
         
     return
 
@@ -90,12 +90,14 @@ def entropy_of_mating_with(theta1, N):
 
 def plot_zero_entropy_angles(theta1, N):
     # Fixed an angle theta1
-    # Outputs a plot of all dyadic angleswith denominator 2**N whose mating with theta1 has zero entropy
+    # Outputs a plot of all dyadic angle swith denominator 2**N whose mating with theta1 has zero entropy
     
     denom = 2 ** N
     
-    dots_x_red = []
-    dots_y_red = []
+    plt.grid()
+    
+    dots_x = []
+    dots_y = []
     
     for a in range(1, denom):
         
@@ -104,16 +106,50 @@ def plot_zero_entropy_angles(theta1, N):
         h = entropy(A.matrix)
         
         if h == 0:
-            dots_x_red.append(math.cos(theta2 * math.tau))
-            dots_y_red.append(math.sin(theta2 * math.tau))
+            dots_x.append(math.cos(theta2 * math.tau))
+            dots_y.append(math.sin(theta2 * math.tau))
             
-    plt.plot(dots_x_red, dots_y_red, ',')
+    plt.plot(dots_x, dots_y, '.')
     plt.gca().set_aspect("equal")
     plt.xlim(-1.2, 1.2)
     plt.ylim(-1.2, 1.2)
     plt.suptitle(f"Zero entropy on matings with {theta1}")
     plt.show()
+    
+    return
 
+####
+
+def plot_zero_entropy_angles_height(theta1, N):
+    # Fixed an angle theta1
+    # Outputs a plot of all dyadic angle swith denominator 2**N whose mating with theta1 has zero entropy
+    # x coordinate is the angle in [0,1], y coordinate is the height of the denominator
+    
+    denom = 2 ** N
+    
+    angles = []
+    heights = []
+    
+    for a in range(1, denom):
+        
+        theta2 = Fraction(a, denom)
+        A = hta.mating_dyadics(theta1, theta2)
+        h = entropy(A.matrix)
+        
+        if h == 0:
+            angles.append(theta2)
+            heights.append(1/math.log2(theta2.denominator))
+            
+    plt.plot(angles, heights, '.')
+    # plt.gca().set_aspect("equal")
+    
+    plt.xlim(0, 1)
+    
+    plt.xlabel('Angle theta = a/2^m')
+    plt.ylabel('Height 1/m')
+    
+    plt.suptitle(f"Dyadic matings with {theta1} having zero entropy")
+    plt.show()
     
     return
 
@@ -163,6 +199,66 @@ def plot_only_dyadic_ray_connections(theta1, N):
     plt.ylim(-1.2, 1.2)
     plt.suptitle(f"No non-dyadic ray connections on mating with {theta1}")
     plt.show()
+
+####
+
+def info(theta1, N):
+    # Given N and theta
+    # Prints all info on the mating with theta and a/2**N for all a
+    
+    denom = 2**N
+    
+    for a in range(1, denom):
+        theta2 = Fraction(a, denom)
+        A = hta.mating_dyadics(theta1, theta2)
+        M = A.matrix
+        n_components, labels = connected_components(csgraph = M, directed = True, connection = 'weak')
+        ent = entropy(M)
+        if 5/7 < theta2 and theta2 < 6/7:
+            conjugate = True
+        else:
+            conjugate = False
+            
+        B = ignore_trivial(A)
+
+        
+        print(f'Mating of {theta1} with {theta2}:\n - entropy = {ent}\n - size = {A.size}\n - size ignoring trivial = {B.size}\n - weak components = {n_components}\n conjugate limbs = {conjugate}\n')
+    
+    return
+
+def is_weakly_connected(M):
+    
+    n_components, labels = connected_components(csgraph = M, directed = True, connection = 'weak')
+    
+    if n_components == 1:
+        return True
+    
+    else:
+        return False
+    
+    
+def not_weakly_connected_up_to(N):
+    
+    denom = 2 ** N
+    
+    for a in range(1, denom):
+        for b in range(a, denom):
+            
+            if a + b != denom: # Weirdness if conjugate: more than 2 components possibly
+            
+                theta1 = Fraction(a, denom)
+                theta2 = Fraction(b, denom)
+                
+                A = hta.mating_dyadics(theta1, theta2)
+                M = A.matrix
+                
+                n_components, labels = connected_components(csgraph = M, directed = True, connection = 'weak')
+                
+                if not is_weakly_connected(M):
+                    
+                    print(f'Mating {theta1} with {theta2} not weakly connected, size = {A.size}, number = {n_components}')
+                
+    return
 
 ####
 
@@ -232,53 +328,3 @@ def main2():
     return
 
 ####
-
-def is_weakly_connected(M):
-    
-    n_components, labels = connected_components(csgraph = M, directed = True, connection = 'weak')
-    
-    if n_components == 1:
-        return True
-    
-    else:
-        return False
-    
-    
-def not_weakly_connected_up_to(N):
-    
-    denom = 2 **N
-    
-    for a in range(1, denom):
-        for b in range(a, denom):
-            
-            if a + b != denom: # Weirdness if conjugate: more than 2 components possibly
-            
-                theta1 = Fraction(a, denom)
-                theta2 = Fraction(b, denom)
-                
-                A = hta.mating_dyadics(theta1, theta2)
-                M = A.matrix
-                
-                n_components, labels = connected_components(csgraph = M, directed = True, connection = 'weak')
-                
-                if not is_weakly_connected(M):
-                    
-                    print(f'Mating {theta1} with {theta2} not weakly connected, size = {A.size}, number = {n_components}')
-                
-    return
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
