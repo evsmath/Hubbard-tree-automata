@@ -193,7 +193,7 @@ def plot_only_dyadic_ray_connections(theta1, N):
             dots_x.append(math.cos(theta2 * math.tau))
             dots_y.append(math.sin(theta2 * math.tau))
             
-    plt.plot(dots_x, dots_y, '.')
+    plt.plot(dots_x, dots_y, ',')
     plt.gca().set_aspect("equal")
     plt.xlim(-1.2, 1.2)
     plt.ylim(-1.2, 1.2)
@@ -225,6 +225,28 @@ def info(theta1, N):
         print(f'Mating of {theta1} with {theta2}:\n - entropy = {ent}\n - size = {A.size}\n - size ignoring trivial = {B.size}\n - weak components = {n_components}\n conjugate limbs = {conjugate}\n')
     
     return
+
+
+def info_self_matings(N):
+    # Given N
+    # Prints all info the mating with a/2**N wwith itself for all a
+    
+    denom = 2**N
+    
+    for a in range(1, denom):
+        theta = Fraction(a, denom)
+        A = hta.mating_dyadics(theta, theta)
+        M = A.matrix
+        n_components, labels = connected_components(csgraph = M, directed = True, connection = 'weak')
+        ent = entropy(M)
+            
+        B = ignore_trivial(A)
+
+        
+        print(f'Mating of {theta} with {theta}:\n - entropy = {ent}\n - size = {A.size}\n - size ignoring trivial = {B.size}\n - weak components = {n_components}\n')
+    
+    return
+
 
 def is_weakly_connected(M):
     
