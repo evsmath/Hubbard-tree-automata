@@ -242,9 +242,9 @@ def major_leaf(theta):
 
 ####
 
-####################################
-# KNEADING SEQUENCES AND ADDRESSES #
-####################################
+############################################
+# KNEADING SEQUENCES AND ADDRESSES: DYADIC #
+############################################
 
 ####
 
@@ -472,7 +472,7 @@ def denominators_angled_internal_address_dyadic(theta):
     denominators.append('...')
     
     return denominators
-    
+
 ####
 
 def numerators_angled_internal_address_dyadic(theta):
@@ -535,6 +535,448 @@ def dyadic_to_binary(fraction):
     return binary_string
 
     # Note that len() will returns m + 1, since there is a '.' at the start
+    
+####
+
+##############
+# NON-DYADIC #
+##############
+
+####
+
+def internal_address(theta):
+    # Input is a rational angle theta, in the form of a Fraction
+    # If theta is periodic under doubling, outputs the (terminating) internal address
+    # If theta is preperiodic, outputs the internal address up to some S_k,
+    # where we may guarantee that for all k' >= k, the denominator q_{k'} = 2
+    
+    k_list = kneading_list(theta)
+    
+    preperiod = k_list[0]
+    period = k_list[1]
+    
+    m = len(preperiod)
+    l = len(period)
+    
+    if m == 0: # periodic kneading sequence: know that it terminates at S_k = l
+    
+        kneading = period
+        S = 1
+        address = [1]
+        
+        while S < l:
+            j = S + 1
+            difference_found = False
+            
+            while not difference_found:
+                eta_lower = kneading[j - 1 - S]
+                eta_upper = kneading[j - 1]
+                
+                if eta_lower == eta_upper:
+                    j += 1
+                
+                else:
+                    difference_found = True
+                    S = j
+                    address.append(S)
+        return address
+        
+    else: # strictly preperiodic: infinite kneading sequence
+    # Lemma: if S_k < m, then S_{k+1} < m + m * l
+    
+        kneading = preperiod + (m * period)
+    
+        S = 1
+        address = [1]
+        
+        while S < m: 
+            
+            j = S + 1
+            difference_found = False
+            
+            while not difference_found:
+                eta_lower = kneading[j - 1 - S]
+                eta_upper = kneading[j - 1]
+                
+                if eta_lower == eta_upper:
+                    j += 1
+                
+                else:
+                    difference_found = True
+                    S = j
+                    address.append(S)
+            
+        # Guarantees that S >= m
+        # Lemma: if S_k >= m, then S_{k+1} <= S_k + m + l
+        
+        while S < m + l:
+            
+            while len(kneading) < S + m + l:
+                kneading += period
+                
+            # Guarantees that len(kneading) >= S + m + l >= S_{k+1}; difference will be found
+            
+            j = S + 1
+            difference_found = False
+            
+            while not difference_found:
+                eta_lower = kneading[j - 1 - S]
+                eta_upper = kneading[j - 1]
+                
+                if eta_lower == eta_upper:
+                    j += 1
+                
+                else:
+                    difference_found = True
+                    S = j
+                    address.append(S)
+                    
+        # Guarantees that S >= m + l
+        # Hence, combined with the previous lemma,
+        # in the formula for the denominators q_k, r = S_{k+1} - S_k, and (S_{k+1} - r)/S_k = 1
+        
+        # If nu^k is the approximating periodic block of length S_k, it will end with B_k, an initial segment of B
+        # Lemma: B_k determines S_{k+1} - S_k = r = r_k, and therefore the next initial segment B_{k+1}
+        # By finiteness, the collection of initial segments eventually repeats
+        
+        # Let {C_1, ..., C_t} is this collection, with corresponding {r_1, ..., r_t}
+        # If S_k is in the rho-orbit of r_j, mark that C_j as "good" (denominator will be q = 2 from there onwards)
+        # Once all the C_j are marked good, can stop computing the internal address
+        
+        # Remark: to keep track of the initial segment B_k, only need to keep track of its length (S-m) % l
+        # We also keep track the corresponding r = r_k, which we find by computing S_{k+1} still
+        
+        pairs_lengths_r = []
+        
+        repeated_length = False
+        
+        while not repeated_length:
+            
+            while len(kneading) < S + m + l:
+                kneading += period
+                
+            # Guarantees that len(keading) >= S + m + l >= S_{k+1}
+            
+            S_k = S
+            length_of_B_k = (S_k - m) % l
+            
+            j = S + 1
+            difference_found = False
+            
+            while not difference_found:
+                eta_lower = kneading[j - 1 - S]
+                eta_upper = kneading[j - 1]
+                
+                if eta_lower == eta_upper:
+                    j += 1
+                
+                else:
+                    difference_found = True
+            
+            S_next = j
+            r_k = S_next - S_k
+            
+            pairs_lengths_r.append( (length_of_B_k, r_k) )
+            
+            S = S_next
+            address.append(S)
+                    
+            length_of_B_next = (S - m) % l
+            
+            # Now, check if this length has already appeared, and keep track of the first time it appeared as an index
+            
+            L = len(pairs_lengths_r)
+            
+            for i in range(L):
+                if length_of_B_next == pairs_lengths_r[i][0]:
+                    repeated_length = True
+                    index = i
+                
+        # Now the current S = S_k has a "periodic" initial segment B_k,
+        # whose length has appeared before in the list [(l_i, r_i)]
+        
+        # create list of the periodic orbit of the lengths, and corresponding r, using index
+
+        periodic_lengths_r = pairs_lengths_r[index : ]
+        p = len(periodic_lengths_r)
+        
+        # Now need to compute internal address until all the lengths are marked as "good"
+        
+        i = 0 # cyclic counter. Note that periodic_lengths_r[0] = (l_k, r_k), for the current S = S_k
+        all_good = False
+        
+        good_indices = []
+        
+        while not all_good:
+            
+            while len(kneading) < S + m + l:
+                kneading += period
+                
+            # Guarantees that len(keading) >= S + m + l >= S_{k+1}
+            
+            S_k = S
+            r_k = periodic_lengths_r[i][1]
+            S_next = S_k + r_k
+            
+            # Here we have S_k, S_{k+1}, and the difference r_k from the list of pairs obtained
+            # Need to check if S_k is in the orbit of r. If yes, mark index i as good; if not, continue
+            
+            if r_k == S_k:
+                
+                # mark index i as good
+                
+                if i not in good_indices:
+                    good_indices.append(i)
+                
+            else:
+                
+                r_i = r_k
+                
+                # Because of our estimates on the length of kneading, the indexing below will not be out of bounds
+                # Since r < S_k, hence rho(r) < S_{k+1} (Check?)
+                
+                j = r_i + 1
+                difference_found = False
+            
+                while not difference_found:
+                    
+                    # Since I haven't proven the claim above, for safety, include a check
+                    
+                    if j > len(kneading):
+                        kneading += period
+                    
+                    eta_lower = kneading[j - 1 -r_i]
+                    eta_upper = kneading[j - 1]
+                    
+                    if eta_lower == eta_upper:
+                        j += 1
+                        
+                    else:
+                        difference_found = True
+                        r_i = j
+                        
+                # This computes the next element in the orbit of r.
+                    
+                S_k_in_orbit = False
+                
+                while (not S_k_in_orbit) and r_i <= S_k:
+                    
+                    if S_k == r_i:
+                        S_k_in_orbit = True
+                        
+                    else:
+                        j = r_i + 1
+                        difference_found = False
+                        
+                        # Check again
+                        
+                        if j > len(kneading):
+                            kneading += period
+                    
+                        while not difference_found:
+                            eta_lower = kneading[j - 1 - r_i]
+                            eta_upper = kneading[j - 1]
+                            
+                            if eta_lower == eta_upper:
+                                j += 1
+                                
+                            else:
+                                difference_found = True
+                                r_i = j
+                                
+                        # This iterates the orbit of r_i
+                        # If r_i ever surpasses S_k, or is equal, stop
+                        
+                if S_k_in_orbit:
+                   # mark i as good
+                   
+                   if i not in good_indices:
+                       good_indices.append(i)
+                       
+            # Now check if all indices are good:
+                
+            if len(good_indices) == p:
+                
+                all_good = True
+                
+                S = S_next
+                address.append(S)
+                
+                # This guarantees that, for preperiodic theta, the last entry computed has denominator 2.
+                
+            else:
+                S = S_next
+                address.append(S)
+                
+                i = (i+1) % p # Recall that it is a cyclic index, ranging over the period of lengths
+            
+        # The loop only ends when all indices are good: must be the case eventually.
+        # Guarantees that for any other entry of the internal address not computed, the denominator is 2
+        
+        address.append('...')
+        
+        return address
+
+####
+
+def denominators_angled_internal_address(theta):
+    # Input is a rational theta in the form of a Fraction
+    # Output is the list of denominators in the angled internal address of theta
+    # If theta has odd denominator, the list is finite. if not, all denominators after the listed ones are 2
+    
+    # Recall that, in the function internal_address, for preperiodic theta, the last S computed has denominator 2
+    
+    k_list = kneading_list(theta)
+    
+    preperiod = k_list[0]
+    period = k_list[1]
+    
+    m = len(preperiod)
+    l = len(period)
+    
+    address = internal_address(theta)
+    
+    if address[-1] == '...':
+        address.pop(-1)
+    
+    highest_S = address[-1]
+    
+    D = max(math.ceil((highest_S / l) + 1), m)
+    kneading = preperiod + (D * period)
+    
+    # This guarantees that we can still compute S_{k+1} from kneading. Possibly redundant
+    
+    M = len(address) - 1    
+    k = 0
+    
+    denominators = []
+    
+    while k < M:
+        
+        S_k = address[k]
+        S_next = address[k+1]
+        
+        r = S_next % S_k
+        
+        if r == 0:
+            
+            q_k = S_next // S_k
+            
+        else:
+            
+            r_i = r
+            
+            j = r_i + 1
+            difference_found = False
+        
+            while not difference_found:
+                eta_lower = kneading[j - 1 -r_i]
+                eta_upper = kneading[j - 1]
+                
+                if eta_lower == eta_upper:
+                    j += 1
+                    
+                else:
+                    difference_found = True
+                    r_i = j
+                    
+            # This computes the next element in the orbit of r.
+                
+            S_k_in_orbit = False
+            
+            while (not S_k_in_orbit) and r_i <= S_k:
+                
+                if S_k == r_i:
+                    S_k_in_orbit = True
+                    
+                else:
+                    j = r_i + 1
+                    difference_found = False
+                
+                    while not difference_found:
+                        eta_lower = kneading[j - 1 - r_i]
+                        eta_upper = kneading[j - 1]
+                        
+                        if eta_lower == eta_upper:
+                            j += 1
+                            
+                        else:
+                            difference_found = True
+                            r_i = j
+                            
+                    # This iterates the orbit of r_i
+                    # If r_i ever surpasses S_k, or is equal, stop
+                    
+            if S_k_in_orbit:
+                q_k = ((S_next - r) // S_k) + 1
+            else:
+                q_k = ((S_next - r) // S_k) + 2
+                
+        denominators.append(q_k)
+        k += 1
+        
+    if m == 0:
+        denominators.append(1)
+        
+    else:
+        denominators.append(2)
+        denominators.append('...')
+
+    return denominators
+
+####
+
+def numerators_angled_internal_address(theta):
+    # returns the numerators in the angled internal address of an angle theta
+    # Everything after the last 1 is a continuing list of 1's
+    
+    k_list = kneading_list(theta)
+    
+    preperiod = k_list[0]
+    period = k_list[1]
+    
+    m = len(preperiod)
+    l = len(period)
+    
+    address = internal_address(theta)
+    denominators = denominators_angled_internal_address(theta)
+    
+    if m != 0:
+        M = len(address) - 2
+    else:
+        M = len(address) - 1
+    
+    numerators = []
+    
+    k = 0
+    
+    while k < M:
+        S_k = address[k]
+        multiplier = 2 ** (S_k)
+        q_k = denominators[k]
+        
+        count = 0
+        theta_now = theta
+        
+        for i in range(q_k - 1):
+            
+            if theta_now <= theta:
+                 count += 1
+                 
+            theta_now = (multiplier * theta_now) % 1
+        
+        p_k = count
+        numerators.append(p_k)
+        k += 1
+        
+    if m != 0:
+        numerators.append(1)
+        numerators.append('...')
+        
+    else:
+        numerators.append(0)
+    
+    return numerators
 
 ####
 
@@ -792,6 +1234,8 @@ def periodic_branch_portraits_dyadic(theta):
 ################################
 # FINDING THE FORBIDDEN REGION #
 ################################
+
+####
 
 def preimage_angles_landing_at_preperiodic_point(angles):
     # Input is a collection of angles landing together at a periodic point
