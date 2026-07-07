@@ -242,15 +242,18 @@ def major_leaf(theta):
 
 ####
 
-############################################
-# KNEADING SEQUENCES AND ADDRESSES: DYADIC #
-############################################
+####################################
+# KNEADING SEQUENCES AND ADDRESSES #
+####################################
 
 ####
 
 def kneading_string(theta):
     # Given a dyadic rational of type Fraction, returns the kneading sequence
     # Parentheses indicate the period
+    
+    if theta == 0: # Convention
+        return '(1)'
     
     iterate = theta
     
@@ -300,6 +303,9 @@ def kneading_list(theta):
     # First entry in the list is preperiod
     # Second is period
     
+    if theta == 0: # Convention
+        return ['', '1']
+    
     iterate = theta
     
     diameter = major_leaf(theta)
@@ -340,6 +346,12 @@ def kneading_list(theta):
     k_list = [kneading_preperiod, kneading_period]
     
     return k_list
+
+####
+
+##########
+# DYADIC #
+##########
 
 ####
 
@@ -514,30 +526,6 @@ def numerators_angled_internal_address_dyadic(theta):
 
 ####
 
-def dyadic_to_binary(fraction):
-    # input is a dyadic fraction, returns its terminating binary expansion
-    
-    num = fraction.numerator
-    denom = fraction.denominator
-    
-    m = 0
-    d = denom
-    
-    while d != 1:
-        d = d // 2 
-        m += 1
-        
-    A = format(num, 'b')
-    l = len(A)
-    
-    binary_string = '.' + ((m - l) * '0') + A
-
-    return binary_string
-
-    # Note that len() will returns m + 1, since there is a '.' at the start
-    
-####
-
 ##############
 # NON-DYADIC #
 ##############
@@ -549,6 +537,8 @@ def internal_address(theta):
     # If theta is periodic under doubling, outputs the (terminating) internal address
     # If theta is preperiodic, outputs the internal address up to some S_k,
     # where we may guarantee that for all k' >= k, the denominator q_{k'} = 2
+    
+    # Biggest difficulty: finding a sufficient 'stop' condition that guarantees we won't miss denominators q >= 3
     
     k_list = kneading_list(theta)
     
@@ -640,7 +630,10 @@ def internal_address(theta):
         # By finiteness, the collection of initial segments eventually repeats
         
         # Let {C_1, ..., C_t} is this collection, with corresponding {r_1, ..., r_t}
-        # If S_k is in the rho-orbit of r_j, mark that C_j as "good" (denominator will be q = 2 from there onwards)
+        # If S_k is in the rho-orbit of r_j, mark that C_j as "good" 
+        # Any other S_{k'}, k'> k, corresponding to this block C_j will have deominator q = 2
+        # This is because the rho-orbits of r_j and S_k merge
+        
         # Once all the C_j are marked good, can stop computing the internal address
         
         # Remark: to keep track of the initial segment B_k, only need to keep track of its length (S-m) % l
@@ -816,6 +809,8 @@ def internal_address(theta):
         address.append('...')
         
         return address
+    
+    # Remark: There is considerable redundancy. Could cut out the extraneous trailing 2's if needed
 
 ####
 
@@ -933,10 +928,8 @@ def numerators_angled_internal_address(theta):
     k_list = kneading_list(theta)
     
     preperiod = k_list[0]
-    period = k_list[1]
     
     m = len(preperiod)
-    l = len(period)
     
     address = internal_address(theta)
     denominators = denominators_angled_internal_address(theta)
@@ -970,7 +963,7 @@ def numerators_angled_internal_address(theta):
         k += 1
         
     if m != 0:
-        numerators.append(1)
+        numerators.append(1) # This is because we guaranteed that the last entry in the internal address had denominator 2
         numerators.append('...')
         
     else:
@@ -983,6 +976,69 @@ def numerators_angled_internal_address(theta):
 #######################
 # AUXILIARY FUNCTIONS #
 #######################
+
+####
+
+def dyadic_to_binary(fraction):
+    # input is a dyadic fraction, returns its terminating binary expansion
+    
+    num = fraction.numerator
+    denom = fraction.denominator
+    
+    m = 0
+    d = denom
+    
+    while d != 1:
+        d = d // 2 
+        m += 1
+        
+    A = format(num, 'b')
+    l = len(A)
+    
+    binary_string = '.' + ((m - l) * '0') + A
+
+    return binary_string
+
+    # Note that len() will returns m + 1, since there is a '.' at the start
+    
+####
+
+def preperiodic_to_binary(fraction):
+    # input is a fraction
+    # Output is a list, first entry is the binary preperiod, second is the binary period
+    
+    iterate = fraction
+
+    binary_preperiod = ''
+    
+    while iterate.denominator % 2 == 0:
+        if 0 <= iterate and iterate < Fraction(1,2):
+            binary_preperiod += '0'
+        else:
+            binary_preperiod += '1'
+        iterate = (2 * iterate) % 1
+        
+    binary_period = ''
+    
+    first_periodic = iterate
+    
+    if 0 <= iterate and iterate < Fraction(1,2):
+        binary_period += '0'
+    else:
+        binary_period += '1'
+        
+    iterate = (2 * iterate) % 1
+        
+    while iterate != first_periodic:
+        if 0 <= iterate and iterate < Fraction(1,2):
+            binary_period += '0'
+        else:
+            binary_period += '1'
+        iterate = (2 * iterate) % 1 
+        
+    b_list = [binary_preperiod, binary_period]
+    
+    return b_list
 
 ####
 
@@ -1044,6 +1100,10 @@ def partner_angle(theta):
     # Given a periodic angle under doubling in the form of a fraction
     # Returns the partner angle
     
+    # See MathOverflow post that proves this algorithm works
+    # Idea: pullback the non-periodic preimage of theta along the itinerary of theta
+    # The partner angle will be sufficiently close to the n-th pullback, if n is the period
+    
     if theta == 0:
         return Fraction(0,1)
     
@@ -1097,6 +1157,8 @@ def cardioid_angle(t):
     # Input is t = p/q rotation number in the form of a Fraction
     # Output is the angle theta_minus landing at the p/q-sublimb of the main cardioid
     # Recall that theta_plus = theta_minus + 1/(2^q -1)
+    
+    # Proof of this formula by Douady + tail estimates on the infinite series
     
     q = t.denominator
     
@@ -1158,6 +1220,10 @@ def cardioid_tuning(alpha, t):
 ####
 
 def periodic_branch_portraits_dyadic(theta):
+    # Input is a dyadic angle theta
+    # Output is the list of all periodic orbit portraits (Milnor) for the polynomial z^2 + c_theta,
+    # having rotation number p/q, q >= 3
+    # These correspond to periodic branch points on the Hubbard tree and their external arguments
     
     int_address = internal_address_dyadic(theta)
     denominators = denominators_angled_internal_address_dyadic(theta)
@@ -1195,6 +1261,12 @@ def periodic_branch_portraits_dyadic(theta):
     
     while k < M:
         
+        # Lemma: For any theta, suppose that for some k we have q_k >= 3.
+        # Then, if phi_k is the periodic approximation of theta of period S_k,
+        # phi_k lands at the root of the hyperbolic component corresponding to S_k
+        
+        # This allows us, by tuning a cardioid angle, to find the rays landing at the q_k * S_k satellite bifurcation
+        
         q_k = denominators[k]
                
         if q_k >= 3:
@@ -1203,6 +1275,113 @@ def periodic_branch_portraits_dyadic(theta):
             p_k = numerators[k]
             
             approx_string = bin_string[1:S_k + 1]
+            
+            approx_num = int(approx_string, 2)
+            
+            angle = Fraction(approx_num, (2 ** S_k) - 1)
+            
+            # This works because of our estimates for dyadics:
+            # If m is the preperiod, and k is such that q_k >= 3,
+            # then S_k =< (m-1)/2 < m
+            # bin_string has length m, the preperiod of theta, so cutting it off at S_k doesn't leave out anything
+            # (even the trailing zeros which would be necessary to find the approximating periodic angle)
+            
+            tuned_angle = cardioid_tuning(angle, Fraction(p_k, q_k))
+            
+            orbit_angle = tuned_angle
+            
+            orbit_portrait = []
+            
+            for i in range(S_k):
+                orbit_portrait.append([])
+            
+            for j in range(q_k):
+                for i in range(S_k):
+                    
+                    orbit_portrait[i].append(orbit_angle)
+                    orbit_angle = (2 * orbit_angle) % 1
+                    
+            branch_satellite_orbits.append(orbit_portrait)
+        
+        k += 1
+            
+    return branch_satellite_orbits
+
+####
+
+def periodic_branch_portraits(theta):
+    # Input is a RATIONAL angle theta
+    # Output is the list of all periodic orbit portraits (Milnor) for the polynomial z^2 + c_theta,
+    # having rotation number p/q, q >= 3
+    # These correspond to periodic branch points on the Hubbard tree and their external arguments
+    
+    address = internal_address(theta)
+    denominators = denominators_angled_internal_address(theta)
+    numerators = numerators_angled_internal_address(theta)
+    
+    if theta.denominator % 2 == 0:
+        M = len(address) - 1 # recall that for preperiodic theta, the internal address ends with '...'
+    else:
+        M = len(address)
+        
+    preperiod_bin_string = preperiodic_to_binary(theta)[0]
+    period_bin_string = preperiodic_to_binary(theta)[1]
+    
+    bin_string = preperiod_bin_string + period_bin_string
+    
+    branch_satellite_orbits = []
+    
+    k = 0
+    
+    # First, case of k = 0:
+        
+    q_0 = denominators[0]
+    
+    if q_0 >= 3:
+        
+        p_0 = numerators[0]
+        
+        theta_minus = cardioid_angle(Fraction(p_0, q_0))
+        
+        orbit_portrait = [[]]
+        orbit_angle = theta_minus
+        
+        for j in range(q_0):
+            
+            orbit_portrait[0].append(orbit_angle)
+            orbit_angle = (2 * orbit_angle) % 1
+    
+        branch_satellite_orbits.append(orbit_portrait)
+    
+    k += 1
+    
+    # now k = 1, iterate it to M - 1
+    
+    while k < M:
+        
+        # Lemma: For any theta, suppose that for some k we have q_k >= 3.
+        # Then, if phi_k is the periodic approximation of theta of period S_k,
+        # phi_k lands at the root of the hyperbolic component corresponding to S_k
+        
+        # This allows us, by tuning a cardioid angle, to find the rays landing at the q_k * S_k satellite bifurcation
+        
+        q_k = denominators[k]
+               
+        if q_k >= 3:
+            
+            S_k = address[k]
+            p_k = numerators[k]
+            
+            while S_k > len(bin_string):
+                
+                bin_string += period_bin_string
+                
+            # This guarantees that the binary string for theta has at least S_k entries
+            # Hence we may take the approximation
+            
+            # Differently from dyadics, the string doesn't start with a dot: .b1b2...
+            
+            approx_string = bin_string[:S_k]
             
             approx_num = int(approx_string, 2)
             
