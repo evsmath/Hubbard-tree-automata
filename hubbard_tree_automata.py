@@ -872,14 +872,6 @@ def denominators_angled_internal_address(theta):
             
         else:
             
-
-            
-            
-            
-            
-            
-            
-            
             r_orbit = r_k # change index to treat as iteration, to find rho-orbit of r_k
             
             S_k_in_the_orbit_of_r_k = False
