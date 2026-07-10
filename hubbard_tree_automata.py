@@ -957,21 +957,26 @@ def numerators_angled_internal_address(theta):
     k = 0
     
     while k < M:
-        S_k = address[k]
-        multiplier = 2 ** (S_k)
         q_k = denominators[k]
         
-        count = 0
-        theta_now = theta
-        
-        for i in range(q_k - 1):
+        if q_k == 2:
+            p_k = 1
+        else:    
+            S_k = address[k]
+            multiplier = 2 ** (S_k)
             
-            if theta_now <= theta:
-                 count += 1
-                 
-            theta_now = (multiplier * theta_now) % 1
-        
-        p_k = count
+            count = 0
+            theta_now = theta
+            
+            for i in range(q_k - 1):
+                
+                if theta_now <= theta:
+                     count += 1
+                     
+                theta_now = (multiplier * theta_now) % 1
+            
+            p_k = count
+            
         numerators.append(p_k)
         k += 1
         
