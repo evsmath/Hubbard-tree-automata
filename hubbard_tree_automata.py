@@ -248,53 +248,17 @@ def major_leaf(theta):
 
 ####
 
-def kneading_string(theta):
-    # Given a dyadic rational of type Fraction, returns the kneading sequence
-    # Parentheses indicate the period
+def principal_period(s):
+    # Given a string s
+    # Returns the principal period of s (Stack Exchange)
     
-    if theta == 0: # Convention
-        return '(1)'
+    i = (s+s).find(s, 1, -1)
     
-    iterate = theta
+    if i == -1:
+        return s
     
-    diameter = major_leaf(theta)
-    
-    open_arcs = diameter.open_arcs
-    
-    for arc in open_arcs:
-        if in_arc(theta, arc):
-            arc_1 = arc
-            
-    kneading = ''
-    
-    while iterate.denominator % 2 == 0:
-        if in_arc(iterate, arc_1):
-            kneading += '1'
-        else:
-            kneading += '0'
-        iterate = (2 * iterate) % 1
-        
-    kneading += '('
-    
-    first_periodic = iterate
-    
-    if in_arc(iterate, arc_1):
-        kneading += '1'
     else:
-        kneading += '0'
-        
-    iterate = (2 * iterate) % 1
-        
-    while iterate != first_periodic:
-        if in_arc(iterate, arc_1):
-            kneading += '1'
-        else:
-            kneading += '0'
-        iterate = (2 * iterate) % 1 
-        
-    kneading += ')'
-    
-    return kneading
+        return s[:i]
 
 ####
 
@@ -302,6 +266,8 @@ def kneading_list(theta):
     # Given a dyadic rational of type Fraction, returns the kneading sequence
     # First entry in the list is preperiod
     # Second is period
+    
+    # Note: the kneading_period of theta may be a strict divisor of the orbit period
     
     if theta == 0: # Convention
         return ['', '1']
@@ -342,6 +308,10 @@ def kneading_list(theta):
         else:
             kneading_period += '0'
         iterate = (2 * iterate) % 1 
+        
+    # Computes principal period:
+        
+    kneading_period = principal_period(kneading_period)
         
     k_list = [kneading_preperiod, kneading_period]
     
@@ -1431,6 +1401,72 @@ def periodic_branch_portraits(theta):
 ################################
 # FINDING THE FORBIDDEN REGION #
 ################################
+
+####
+
+def angles_landing_at_P_preperiodic(theta):
+    # Given an angle theta preperiodic under doubling
+    # Finds all the rays landing on the postcritical set P, grouped into points
+    
+    orbit = preperiodic_orbit(theta)
+    
+    kneading = kneading_list(theta)
+    
+    m = len(kneading[0]) # preperiod
+    l = len(kneading[1]) # orbit period
+    
+    n = len(orbit) - m # ray period
+    
+    periodic_orbit = orbit[m:]
+    
+    r = n // l # number of rays landing at each point
+    
+    if r > 1: # critical value falls onto a satellite orbit
+        return pullback_of_satellite_orbit
+        ###############################################################
+    else:
+        
+        found_nontrivial_portrait = False
+        
+        j = 0
+        
+        while found_nontrivial_portrait == False and j < n:
+            
+            angle = periodic_orbit[j]
+            partner = partner_angle(angle)
+            
+            if angle < partner:
+                if angle < theta and theta < partner:
+                    # record that they land together
+                    
+                    found_nontrivial_portrait = True
+                    
+                        
+            else:
+                if partner < theta and theta < angle:
+                    # record that they land together
+                    
+                    found_nontrivial_portrait = True
+        
+            j += 1
+        
+        # Because the satellite case is already considered above, we know that the
+        # portrait, if found, must be primitive
+        
+        angles = []
+        
+        if found_nontrivial_portrait == False:
+            
+            for element in orbit:
+                
+                angles.append([element])
+                
+        else: # Presence of primitive portrait
+        # Need to pullback the periodic portrait to the preperiodic ones
+        ####################################################################################
+            return
+        
+    return
 
 ####
 
