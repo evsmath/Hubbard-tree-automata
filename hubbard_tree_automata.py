@@ -19,6 +19,15 @@ import matplotlib.pyplot as plt
 
 ####
 
+def fractions_equal(a , b):
+    # Given two Fractions, checks if they are equal
+    
+    if a.numerator == b.numerator and a.denominator == b.denominator:
+        return True
+    
+    else:
+        return False
+
 class arc:
     # Defines non-empty arcs of the circle, oriented counterclockwise
     
@@ -82,7 +91,9 @@ def are_equal(arc1, arc2):
 
 def image_arc(arc1):
     # Gives the image arc of an arc
-    # Assumes that the arc covers less than half of the circle; true in the relevant applications below
+    # Assumes that the arc covers less than half of the circle
+    
+    # This will always be true in the applications below, but be careful
     
     new_left_endpoint = (2 * arc1.left_endpoint) % 1
     new_right_endpoint = (2 * arc1.right_endpoint) % 1
@@ -595,7 +606,7 @@ def internal_address(theta):
         # Hence, combined with the previous lemma,
         # in the formula for the denominators q_k, r = S_{k+1} - S_k, and (S_{k+1} - r)/S_k = 1
         
-        # If nu^k is the approximating periodic block of length S_k, it will end with B_k, an initial segment of B
+        # If nu^k is the approximating periodic block of length S_k, it will end in B_k, an initial segment of B
         # Lemma: B_k determines S_{k+1} - S_k = r = r_k, and therefore the next initial segment B_{k+1}
         # By finiteness, the collection of initial segments eventually repeats
         
@@ -1061,7 +1072,7 @@ def binary_period(alpha):
 
 def preperiodic_orbit(theta):
     # Given a preperiodic angle under doubling in the form of a fraction
-    # Returns its orbit
+    # Returns its finite orbit as a list
     
     angle = theta
     
@@ -1404,13 +1415,43 @@ def periodic_branch_portraits(theta):
 
 ####
 
+def preimages(angles_at_point, diameter):
+    # Input is a collection of angles landing at a given point, and a diameter (major leaf)
+    # Output are the two preimage points, represented by the angles landing on them,
+    # respecting the diamater partition
+    
+    open_arcs = diameter.open_arcs
+    
+    reference_arc = open_arcs[0]
+    preimage_0 = []
+    preimage_1 = []
+    
+    for angle in angles_at_point:
+        
+        preimage_angle_A = angle / 2
+        preimage_angle_B = (1 + angle) / 2
+        
+        if in_arc(preimage_angle_A, reference_arc):
+            
+            preimage_0.append(preimage_angle_A)
+            preimage_1.append(preimage_angle_B)
+            
+        else:
+            
+            preimage_1.append(preimage_angle_A)
+            preimage_0.append(preimage_angle_B)
+    
+    return [preimage_0, preimage_1]
+
+####
+
 def angles_landing_at_P_preperiodic(theta):
     # Given an angle theta preperiodic under doubling
     # Finds all the rays landing on the postcritical set P, grouped into points
     
     orbit = preperiodic_orbit(theta)
-    
     kneading = kneading_list(theta)
+    diameter = major_leaf(theta)
     
     m = len(kneading[0]) # preperiod
     l = len(kneading[1]) # orbit period
@@ -1422,9 +1463,56 @@ def angles_landing_at_P_preperiodic(theta):
     r = n // l # number of rays landing at each point
     
     if r > 1: # critical value falls onto a satellite orbit
-        return pullback_of_satellite_orbit
-        ###############################################################
-    else:
+        
+        angles_at_P = []
+        for i in range(l):
+            angles_at_P.append([])
+            
+        for i in range(n):
+            angle = periodic_orbit[i]
+            
+            angles_at_P[i % l].append(angle)
+            
+        index = m - 1
+        
+        current_point = angles_at_P[0]
+        
+        while index >= 0:
+            
+            preimage_0, preimage_1 = preimages(current_point, diameter)
+            
+            found_angle_of_orbit_in_preimage_0 = False
+            i = 0
+            
+            while i < r and found_angle_of_orbit_in_preimage_0 == False:
+                angle = preimage_0[i]
+                
+                if fractions_equal(orbit[index], angle):
+                
+                    found_angle_of_orbit_in_preimage_0 = True
+                    
+                i += 1
+                
+            if found_angle_of_orbit_in_preimage_0 == True:
+                current_point = preimage_0
+                
+            else:
+                current_point = preimage_1
+            
+            angles_at_P = [current_point] + angles_at_P
+                
+            index -= 1
+    
+        return angles_at_P
+
+    else: # r = 1, the periodic portrait of the critical orbit is trivial or primitive
+    # To see if the portrait is non-trivial: finds all partners of the periodic angles
+    # if theta is in the angle sector determined by some periodic angle and its partner,
+    # Then a portrait is realized. It must be primitive because the satellite case is 
+    # Remark: only one portrait is realized, because the characteristic leaf determines it
+    
+    # Note: if theta is dydic, always returns trivial portrait, as expected
+    # Because in the cose below, angle = partner = 0
         
         found_nontrivial_portrait = False
         
@@ -1441,33 +1529,128 @@ def angles_landing_at_P_preperiodic(theta):
                     
                     found_nontrivial_portrait = True
                     
+                    char_angle = angle
+                    char_partner = partner
+                    
                         
             else:
                 if partner < theta and theta < angle:
                     # record that they land together
                     
                     found_nontrivial_portrait = True
+                    
+                    char_angle = angle
+                    char_partner = partner
         
             j += 1
         
         # Because the satellite case is already considered above, we know that the
         # portrait, if found, must be primitive
         
-        angles = []
+        angles_at_P = []
         
         if found_nontrivial_portrait == False:
             
             for element in orbit:
                 
-                angles.append([element])
+                angles_at_P.append([element])
+                
+                return angles_at_P
                 
         else: # Presence of primitive portrait
-        # Need to pullback the periodic portrait to the preperiodic ones
-        ####################################################################################
-            return
+            # char_angle and char_partner for the characteristic leaf for the corresponding primitive orbit
+            # j -1 is the index in the periodic orbit
+            
+            start_j = j - 1
+            
+            angles_at_P = []
+            current_angle, current_partner = char_angle, char_partner
+            
+            while j - 1 < n:
+                
+                angles_at_P.append([current_angle, current_partner])
+                
+                j += 1
+                
+                current_angle = (2 * current_angle) % 1
+                current_partner = (2* current_partner) % 1
+                
+            # Now j = n, return to start of period
+            
+            for i in range(0, start_j):
+                
+                angles_at_P = [[current_angle, current_partner]] + angles_at_P 
+                
+                current_angle = (2 * current_angle) % 1
+                current_partner = (2* current_partner) % 1
+            
+            # Now need to pullback to the preperiodic ones
+            
+            index = m - 1
+            
+            current_point = angles_at_P[0]
+            
+            while index >= 0:
+                
+                preimage_0, preimage_1 = preimages(current_point, diameter)
+                
+                found_angle_of_orbit_in_preimage_0 = False
+                i = 0
+                
+                while i < r and found_angle_of_orbit_in_preimage_0 == False:
+                    angle = preimage_0[i]
+                    
+                    if fractions_equal(orbit[index], angle):
+                    
+                        found_angle_of_orbit_in_preimage_0 = True
+                        
+                    i += 1
+                    
+                if found_angle_of_orbit_in_preimage_0 == True:
+                    current_point = preimage_0
+                    
+                else:
+                    current_point = preimage_1
+                
+                angles_at_P = [current_point] + angles_at_P
+                    
+                index -= 1
         
-    return
+            return angles_at_P
 
+####
+
+def angles_landing_at_roots_periodic(theta):
+    # Input is a periodic theta under doubling
+    # Output is the collection of angles landing at the roots of the periodic Fatou components
+    
+    # Less computationally intensive way of finding the period of theta:
+    
+    n = 1
+    current_orbit = (2 * theta) % 1
+    
+    while not fractions_equal(current_orbit, theta):
+    
+        n += 1
+        current_orbit = (2 * current_orbit) % 1
+    
+    # now n is the period
+        
+    
+    angles_at_roots = []
+    
+    current_angle = theta
+    current_partner = partner_angle(theta)
+    
+    for i in range(n):
+        
+        angles_at_roots.append([current_angle, current_partner])
+        
+        current_angle = (2 * current_angle) % 1
+        current_partner = (2 * current_partner) % 1
+        
+    return angles_at_roots
+    
 ####
 
 def preimage_angles_landing_at_preperiodic_point(angles):
@@ -1656,6 +1839,161 @@ def forbidden_region_dyadic(theta):
     candidate_points = []
     
     for portrait in periodic_branch_portraits:
+        for angles_landing_at_point in portrait:
+            
+            preperiodic_preimage = preimage_angles_landing_at_preperiodic_point(angles_landing_at_point)
+            
+            candidate_point = {}
+            
+            for angle in preperiodic_preimage:
+                candidate_point[angle] = False 
+                
+                # This says that the corresponding arcs are not yet preimages of forbidden arcs
+            
+            candidate_points.append(candidate_point)
+        
+    # Now, we have created the first list of candidates for attaching points of the Hubbard tree,
+    # And for the corresponding arcs that could be forbidden
+    # Note that a forbidden region has not yet been identified, and so all arcs are labeled False
+    # As they are not yet preimages of forbidden arcs
+
+    forbidden_arcs = []
+    no_more_attaching_points = False
+    
+    while not no_more_attaching_points:
+        
+        new_list_of_candidate_points = []
+        
+        for candidate_point in candidate_points:
+                
+            if is_possible_attaching_point(candidate_point, P):
+                # the arcs must separate at least two points of P, otherwise the point is not a possible attaching
+                # point, nor do we add its preimages
+            
+                for angle in candidate_point:
+                    
+                    next_angle = next_in_cyclic_order(angle, candidate_point)
+                    open_arc = arc(angle, next_angle, False)
+                    
+                    if contains(open_arc, P) == False and (candidate_point[angle] == False):
+                        forbidden_arcs.append(open_arc)
+                        # Add the forbidden arcs, if it is not already a preimage of a forbidden arc
+                        
+                if is_branch_point(candidate_point, P): 
+                    # if it is a branch point of H, then adds the two preimages with labels
+                    # Recall that when taking the preimage points, the preimages of forbidden arcs get the label
+                    # True, so that they are no counted as different forbidden arcs
+                    
+                    preimages = preimages_with_labels(candidate_point, P, diameter)
+                    new_list_of_candidate_points += preimages
+                    
+        candidate_points = new_list_of_candidate_points
+        
+        if candidate_points == []:
+            no_more_attaching_points = True
+            
+    # Obtained list of forbidden arcs
+    # Now we sort the forbidden arcs in cyclic order within the unit circle
+
+    arcs_w_left_endpoints = {}
+    
+    for forbidden_arc in forbidden_arcs:
+        arcs_w_left_endpoints[forbidden_arc] = forbidden_arc.left_endpoint
+            
+    sorted_arcs_dict = {key: value for key, value in sorted(arcs_w_left_endpoints.items(), key = lambda item: item[1])}
+    
+    sorted_arcs = []
+    for forbidden_arc in sorted_arcs_dict:
+        sorted_arcs.append(forbidden_arc)
+        
+    return sorted_arcs
+
+####
+
+def forbidden_region(theta):
+    # Input is a rational angle theta
+    # Output is the forbidden_region of the Hubbard tree of f_{c_{theta}}
+    
+    # To find the forbidden region, need to find the attaching points of the preimage Hubbard tree
+    # Divide into two cases: attaching point is in P or not
+    
+    # Not in P: it is a branch point of the preimage tree, and maps into a periodic branch cycle
+    # Need to find all periodic branch portraits, iterate preimages until leaves stop separating P
+    
+    # In P: Find those points in P where the Hubbard tree gains a new branch at its image
+    # if f hyperbolic, only happens once, if f subhyperbolic, may happen many times
+    
+    # Danger: Orbit of P could fall into a periodic branch orbit (ex.: 9/56), want to treat these
+    # separately. This is because that determine whether the point is a branch point,
+    # or possible attaching point, don't work well if the point itself is in P
+    # (this was not possible in the dyadic case)
+
+    P = preperiodic_orbit(theta)
+    diameter = major_leaf(theta)
+    per_branch_portraits = periodic_branch_portraits(theta)
+    
+    if theta.denominator % 2 == 0:
+        
+        periodic = False
+        angles_at_P = angles_landing_at_P_preperiodic(theta)
+        
+    else:
+        periodic = True
+        angles_at_roots = angles_landing_at_roots_periodic(theta)
+    
+    # We want to exclude the branch portrait corresponding to the periodic orbit of preperiodic theta
+    # This only happens if theta is preperiodic and three or more rays land at each point of P
+    
+    if periodic == False:
+        
+        if len(angles_at_P[0]) >= 3:
+        
+            found_postcritical_portrait = False
+            
+            num_portraits = len(per_branch_portraits)
+            i = 0
+            
+            while i < num_portraits and (found_postcritical_portrait == False):
+                
+                portrait = per_branch_portraits[i]
+                num_points_in_portrait = len(portrait)
+                j = 0
+                
+                while j < num_points_in_portrait and (found_postcritical_portrait == False):
+                    
+                    angles_landing_at_point = portrait[j]
+                    num_angles_landing_at_point = len(angles_landing_at_point)
+                    k = 0
+                    
+                    while k < num_angles_landing_at_point and (found_postcritical_portrait == False):
+                        
+                        angle = angles_landing_at_point[k]
+                        num_forward_orbit_theta = len(P)
+                        l = 0
+                        
+                        while l < num_forward_orbit_theta and (found_postcritical_portrait == False):
+                            
+                            postcritical_angle = P[l]
+                            
+                            if fractions_equal(angle, postcritical_angle):
+                                found_postcritical_portrait == True
+                                index_of_postcritical_portait = i
+                                
+                        k += 1            
+                    j += 1                
+                i += 1        
+                
+            per_branch_portraits.pop(index_of_postcritical_portait)
+    
+    # Now we've excluded the postcritical portrait from those branch point
+    
+    # Treat postcritical portrait of P separately
+    # Only nuance: if periodic, in the case of a rabbit, a root point of a periodic Fatou component
+    # may coincide with a periodic satellite branch point
+    
+    candidate_points = []
+    
+    for portrait in per_branch_portraits:
         for angles_landing_at_point in portrait:
             
             preperiodic_preimage = preimage_angles_landing_at_preperiodic_point(angles_landing_at_point)
