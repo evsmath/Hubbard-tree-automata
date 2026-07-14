@@ -1945,7 +1945,6 @@ def forbidden_region(theta):
     # This only happens if theta is preperiodic and three or more rays land at each point of P
     
     if periodic == False:
-        
         if len(angles_at_P[0]) >= 3:
         
             found_postcritical_portrait = False
@@ -1968,6 +1967,7 @@ def forbidden_region(theta):
                     while k < num_angles_landing_at_point and (found_postcritical_portrait == False):
                         
                         angle = angles_landing_at_point[k]
+                        
                         num_forward_orbit_theta = len(P)
                         l = 0
                         
@@ -1979,6 +1979,7 @@ def forbidden_region(theta):
                                 found_postcritical_portrait == True
                                 index_of_postcritical_portait = i
                                 
+                            l += 1    
                         k += 1            
                     j += 1                
                 i += 1        
@@ -1986,10 +1987,7 @@ def forbidden_region(theta):
             per_branch_portraits.pop(index_of_postcritical_portait)
     
     # Now we've excluded the postcritical portrait from those branch point
-    
-    # Treat postcritical portrait of P separately
-    # Only nuance: if periodic, in the case of a rabbit, a root point of a periodic Fatou component
-    # may coincide with a periodic satellite branch point
+    # Treat postcritical portrait of P separately after
     
     candidate_points = []
     
@@ -2047,8 +2045,56 @@ def forbidden_region(theta):
         if candidate_points == []:
             no_more_attaching_points = True
             
-    # Obtained list of forbidden arcs
+    # Obtained list of forbidden arcs for the preperiodic preimages of periodic branch points
+    # Now treat attaching points in P separately
+    
+    if periodic == False:
+        if len(angles_at_P[0]) >= 2:
+            
+            # Need to find postcritical attaching points
+            # They are exactly the postcritical points c_i for which f(c_i) has more branches than c_i
+            # Still measure this with respect to leaves and separation of P, but ignore the point itself
+            
+            for i in range(m-1):
+                c_i = angles_at_P[i]
+                f_c_i = angles_at_P[i+1]
+                
+                # If a leaf of c_i doesn't separate P \ {angles at c_i},
+                # and its image leaf of f_c_i separates P \ {angles at f_c_i},
+                # then it corresponds to a forbidden arc
+                
+                # Remark: because of non-periodicity, only need to exclude, from P, the angle P[i] landing at c_i
+                P_excluded_theta_i = P.pop(i)
+                
+                # only need to exclude more angles from f_c_i when it is the first periodic point
+                # Hence why the iteration for i is from 0 to m-2
+                P_excluded_theta_i_plus_1 = P.pop(i+1)
+                
+                for angle in c_i:
+                    next_angle = next_in_cyclic_order(angle, c_i)
+                    leaf = leaf(angle, next_angle)
+                    
+                    # Check if leaf doesn't separate P_excluded_theta_i
+                    # And separates P_excluded_theta_i_plus_1
+                    
+                    open_arc0, open_arc1 = leaf.open_arcs
+                    
+                    # Choose open_arc0 as reference: check if all points of P_excluded_theta_i are in it
+                    
+                    for p in P_excluded_theta_i:
+                        if in_arc(p, open_arc0)
+                
+            
+            
+    
+    
+    
+    
+    
     # Now we sort the forbidden arcs in cyclic order within the unit circle
+    
+    # Only nuance: if periodic, in the case of a rabbit, a root point of a periodic Fatou component
+    # may coincide with a periodic satellite branch point
 
     arcs_w_left_endpoints = {}
     
