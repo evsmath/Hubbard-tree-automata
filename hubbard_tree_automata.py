@@ -253,6 +253,18 @@ def major_leaf(theta):
 
 ####
 
+def image_leaf(l):
+    # Given a leaf, outputs its image
+    
+    endpoint_A, endpoint_B = l.endpoint_A, l.endpoint_B
+    
+    image_A = (2 * endpoint_A) % 1
+    image_B = (2 * endpoint_B) % 1
+    
+    return leaf(image_A, image_B)
+    
+####
+
 ####################################
 # KNEADING SEQUENCES AND ADDRESSES #
 ####################################
@@ -273,12 +285,27 @@ def principal_period(s):
 
 ####
 
+def period(theta):
+    # Given theta periodic under doubling
+    # Computes its period
+    
+    iterate = (2 * theta) % 1
+    n = 1
+    
+    while not fractions_equal(iterate, theta):
+        iterate = (2 * iterate) % 1
+        n += 1
+        
+    return n
+
+####
+
 def kneading_list(theta):
     # Given a dyadic rational of type Fraction, returns the kneading sequence
     # First entry in the list is preperiod
     # Second is period
     
-    # Note: the kneading_period of theta may be a strict divisor of the orbit period
+    # Note: for preperiodic theta, the kneading_period of theta may be a strict divisor of the orbit period
     
     if theta == 0: # Convention
         return ['', '1']
@@ -296,6 +323,7 @@ def kneading_list(theta):
     kneading_preperiod = ''
     
     while iterate.denominator % 2 == 0:
+        
         if in_arc(iterate, arc_1):
             kneading_preperiod += '1'
         else:
@@ -312,23 +340,95 @@ def kneading_list(theta):
         kneading_period += '0'
         
     iterate = (2 * iterate) % 1
-        
+    
     while iterate != first_periodic:
-        if in_arc(iterate, arc_1):
+        
+        if (2 * iterate) % 1 == theta:
+            kneading_period += '*'
+        elif in_arc(iterate, arc_1):
             kneading_period += '1'
         else:
             kneading_period += '0'
         iterate = (2 * iterate) % 1 
         
-    # Computes principal period:
+    # Computes principal period for preperiodic:
         
-    kneading_period = principal_period(kneading_period)
+    if theta.denominator % 2 == 0:
+        
+        kneading_period = principal_period(kneading_period)
         
     k_list = [kneading_preperiod, kneading_period]
     
     return k_list
 
 ####
+
+def partner_angle(theta):
+    # Given a periodic angle under doubling in the form of a fraction
+    # Returns the partner angle
+    
+    # See MathOverflow post that proves this algorithm works
+    # Idea: pullback the non-periodic preimage of theta along the itinerary of theta
+    # The partner angle will be sufficiently close to the n-th pullback, if n is the period
+    
+    if theta == 0:
+        return Fraction(0,1)
+    
+    orb = preperiodic_orbit(theta)
+    
+    m = major_leaf(theta)
+    closed_arcs = m.closed_arcs
+    
+    if m.endpoint_A == orb[-1]:
+        p = m.endpoint_B
+        
+    else:
+        p = m.endpoint_A
+        
+    k = -1
+    
+    current_theta_orb = orb[-1]
+    current_pullback = p
+    
+    while current_theta_orb != theta:
+        
+        k -= 1
+        
+        current_theta_orb = orb[k]
+        
+        for arc in closed_arcs:
+            if in_arc(current_theta_orb, arc):
+                current_arc = arc
+        
+        preimages = [current_pullback / 2, (current_pullback + 1) / 2]
+        
+        for preimage in preimages:
+            if in_arc(preimage, current_arc):
+                current_pullback = preimage
+    
+    n = len(orb)
+    
+    denom = (2 ** n) - 1
+    
+    C = denom * current_pullback
+    
+    num = C.__round__()
+    
+    partner = Fraction(num,denom)
+    
+    return partner
+        
+####
+
+def upper_kneading(theta):
+    # Given an angle theta periodic under doubling
+    # Computes the upper_kneading sequence of theta
+    
+    # NEED TO FIX
+
+    return
+
+####        
 
 ##########
 # DYADIC #
@@ -1095,61 +1195,6 @@ def preperiodic_orbit(theta):
     
     return orb
 
-def partner_angle(theta):
-    # Given a periodic angle under doubling in the form of a fraction
-    # Returns the partner angle
-    
-    # See MathOverflow post that proves this algorithm works
-    # Idea: pullback the non-periodic preimage of theta along the itinerary of theta
-    # The partner angle will be sufficiently close to the n-th pullback, if n is the period
-    
-    if theta == 0:
-        return Fraction(0,1)
-    
-    orb = preperiodic_orbit(theta)
-    
-    m = major_leaf(theta)
-    closed_arcs = m.closed_arcs
-    
-    if m.endpoint_A == orb[-1]:
-        p = m.endpoint_B
-        
-    else:
-        p = m.endpoint_A
-        
-    k = -1
-    
-    current_theta_orb = orb[-1]
-    current_pullback = p
-    
-    while current_theta_orb != theta:
-        
-        k -= 1
-        
-        current_theta_orb = orb[k]
-        
-        for arc in closed_arcs:
-            if in_arc(current_theta_orb, arc):
-                current_arc = arc
-        
-        preimages = [current_pullback / 2, (current_pullback + 1) / 2]
-        
-        for preimage in preimages:
-            if in_arc(preimage, current_arc):
-                current_pullback = preimage
-    
-    n = len(orb)
-    
-    denom = (2 ** n) - 1
-    
-    C = denom * current_pullback
-    
-    num = C.__round__()
-    
-    partner = Fraction(num,denom)
-    
-    return partner
-        
 ####
 
 def cardioid_angle(t):
@@ -1313,6 +1358,8 @@ def periodic_branch_portraits(theta):
     # Output is the list of all periodic orbit portraits (Milnor) for the polynomial z^2 + c_theta,
     # having rotation number p/q, q >= 3
     # These correspond to periodic branch points on the Hubbard tree and their external arguments
+    
+    # Remark: need to be careful when theta is an angle landing at a satellite component of bifurcation q > 2
     
     address = internal_address(theta)
     denominators = denominators_angled_internal_address(theta)
@@ -1932,6 +1979,8 @@ def forbidden_region(theta):
     diameter = major_leaf(theta)
     per_branch_portraits = periodic_branch_portraits(theta)
     
+    m = len(kneading_list(theta)[0])
+    
     if theta.denominator % 2 == 0:
         
         periodic = False
@@ -2055,7 +2104,7 @@ def forbidden_region(theta):
             # They are exactly the postcritical points c_i for which f(c_i) has more branches than c_i
             # Still measure this with respect to leaves and separation of P, but ignore the point itself
             
-            for i in range(m-1):
+            for i in range(m):
                 c_i = angles_at_P[i]
                 f_c_i = angles_at_P[i+1]
                 
@@ -2064,29 +2113,89 @@ def forbidden_region(theta):
                 # then it corresponds to a forbidden arc
                 
                 # Remark: because of non-periodicity, only need to exclude, from P, the angle P[i] landing at c_i
-                P_excluded_theta_i = P.pop(i)
                 
-                # only need to exclude more angles from f_c_i when it is the first periodic point
-                # Hence why the iteration for i is from 0 to m-2
-                P_excluded_theta_i_plus_1 = P.pop(i+1)
+                P_excluded_theta_i = P.copy()
+                P_excluded_theta_i.pop(i)
+                
+                if i != m-1:
+                    # only need to exclude more angles from f_c_i when it is the first periodic point
+                    
+                    P_excluded_f_c_i = P.copy()
+                    P_excluded_f_c_i.pop(i+1)
+                    
+                else:
+                    # If i == m-1, last preperiodic point in the orbit
+                    # Will need to exclude more angles from P in this case: all of those who land at f_c_i
+                    
+                    P_excluded_f_c_i = []
+                    
+                    for iterate_of_theta in P:
+                        for image_angle in f_c_i:
+                            if not fractions_equal(iterate_of_theta, image_angle):
+                                P_excluded_f_c_i.append(iterate_of_theta)
+                        
+                    # This removes from P all those angles landing at f_c_i, to consider separation of leaves
                 
                 for angle in c_i:
                     next_angle = next_in_cyclic_order(angle, c_i)
-                    leaf = leaf(angle, next_angle)
                     
-                    # Check if leaf doesn't separate P_excluded_theta_i
-                    # And separates P_excluded_theta_i_plus_1
+                    open_arc = arc(angle, next_angle, False)
                     
-                    open_arc0, open_arc1 = leaf.open_arcs
+                    # Check if arc doesn't contain points of P_excluded_theta_i
+                    # Then if the image arc has points of P_excluded_f_c_i inside and outside
                     
-                    # Choose open_arc0 as reference: check if all points of P_excluded_theta_i are in it
+                    N = len(P_excluded_theta_i)
+                    counter1 = 0
                     
-                    for p in P_excluded_theta_i:
-                        if in_arc(p, open_arc0)
-                
-            
-            
+                    doesnt_contain_points = True
+                    
+                    while counter1 < N and doesnt_contain_points:
+                        
+                        if in_arc(P_excluded_theta_i[counter1], open_arc):
+                            doesnt_contain_points = False
+                        counter1 += 1
+                    
+                    if doesnt_contain_points:
+                        
+                        # Now need to check if the image arc separates P_excluded_theta_i_plus_1
+                        # Remark: arc will always be < 1/2 in length
+                        # If it had length >= 1/2, image would map non-injectively, hence c_0 is in the arc
+                        # But because c_0 is in the tree, there must be endpoints of the tree in the arc too
+                        # This implies we can consier image_arc without problem
+                        
+                        open_arc_image = image_arc(open_arc)
+                        
+                        N_image = len(P_excluded_f_c_i)
+                        
+                        counter2 = 0
+                        points_in_open_image_arc = 0
+                        points_notin_open_image_arc = 0
+                        
+                        while counter2 < N_image and (points_in_open_image_arc == 0 or points_notin_open_image_arc == 0):
+                        
+                            if in_arc(P_excluded_f_c_i[counter2], open_arc_image):
+                                points_in_open_image_arc += 1
+                            else:
+                                points_notin_open_image_arc += 1
+                            counter2 += 1
+                        
+                        if not (points_in_open_image_arc < 1 or points_notin_open_image_arc < 1):
+                            # so that there are PCF points inside and outside of the image arc:
+                            # add the leaf as a forbidden arc!
+                            # either open_arc0 or open_arc1, whichever has 0 points in it
+                            
+                            forbidden_arcs.append(open_arc)
     
+    else: # periodic = True
+        # Repeat roughly same process: find the open arcs that dont contain points of P \ {...},
+        # and whose image separates P \ {...}
+        # Remark: careful with satellite orbits, may overcount forbidden arcs of the roots
+        # don't need to consider satellite cases 
+        if len(angles_at_roots) == 2:
+            
+            return
+        
+        # NEED TO FIX ISSUE WITH UPPER KNEADING SEQUENCES
     
     
     
