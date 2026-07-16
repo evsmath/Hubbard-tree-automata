@@ -2214,14 +2214,24 @@ def forbidden_region(theta):
             return [arc(0,0, False)]
             # Very degenerate case, consider later
             # only to guarantee internal address has at least 2 entries
+            
+        int_address = internal_address(theta)
+        adj_angles = adjacent_angles_landing_at_roots_periodic(theta)
+        
+        # Treat (p/q)-rabbit case separately
+        
+        if len(int_address) == 2:
+            critical_pair = adj_angles[-1]
+            forbidden_arc = arc(critical_pair[0], critical_pair[1], False)
+            return [forbidden_arc]
+            
+        # May assume now that the Julia set is not a (p/q)-rabbit off of the main cardioid
         
         orbit_theta = preperiodic_orbit(theta)
         P = orbit_theta
         
         per_branch_portraits = periodic_branch_portraits(theta)
         num_portraits = len(per_branch_portraits)
-        
-        int_address = internal_address(theta)
         
         root_is_satellite = False
         
@@ -2234,9 +2244,12 @@ def forbidden_region(theta):
             
         candidate_points = []
         
-        ################## TEST ###########    
+        # Ignore the portrait corresponding to theta if the root point is satellite
+        # Will treat this case later separately
+        # Repeat procedure for preperiodic theta for all other periodic branch portraits
+        # to find preperiodic attaching points, which are branch points of the preimage tree
         
-        for i in range(N): # Repeat as above, for theta preperiodic
+        for i in range(N):
             portrait = per_branch_portraits[i]
             for angles_landing_at_point in portrait:
                 
@@ -2298,8 +2311,6 @@ def forbidden_region(theta):
             
             # Note: Doesn't find the attaching point c_0 for p/q-rabbits!
         
-        adj_angles = adjacent_angles_landing_at_roots_periodic(theta)
-        
         n = len(adj_angles) # Total number of periodic Fatou components
         
         found_attaching_point = False
@@ -2351,17 +2362,12 @@ def forbidden_region(theta):
         
         if root_is_satellite:
         
-            if len(int_address) == 2: # (p/q)-rabbit
-                return
+            # Conjecture: attaching point is the -alpha fixed point at the critical small rabbit
+            # forbidden arcs correspond to the "legs" not going to the renormalization beta fixed point
             
-            else:
-                # Conjecture: attaching point is the unique -alpha fixed point at the first small rabbit
-                # at the critical point
-                # forbidden arcs correspond to the "legs" not going to the renormalization beta fixed point
-                
-                portrait_theta = per_branch_portraits[-1]
-        
-                return
+            portrait_theta = per_branch_portraits[-1]
+    
+            return
         
     
     # Now we sort the forbidden arcs in cyclic order within the unit circle
