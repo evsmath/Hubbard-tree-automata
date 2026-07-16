@@ -106,6 +106,7 @@ def image_arc(arc1):
 
 def in_arc(angle, arc):
     # Angle is received in the form of Fraction in [0,1)
+    # Decides ifa given angle is contained in the arc or not
     
     left_endpoint, right_endpoint = arc.left_endpoint, arc.right_endpoint
     
@@ -254,7 +255,7 @@ def major_leaf(theta):
 ####
 
 def image_leaf(l):
-    # Given a leaf, outputs its image
+    # Given a leaf, outputs its image, which could be degenerate if the leaf is a diameter
     
     endpoint_A, endpoint_B = l.endpoint_A, l.endpoint_B
     
@@ -689,27 +690,22 @@ def numerators_angled_internal_address_dyadic(theta):
 
 def internal_address(theta):
     # Input is a rational angle theta, in the form of a Fraction
+    
     # If theta is periodic under doubling, outputs the (terminating) internal address
-    # If theta is preperiodic, outputs the internal address up to some S_k,
+    # of the (center of the) hyperbolic component that theta lands at the root of
+    
+    # If theta is preperiodic, outputs the internal address of the landing point of theta up to some S_k,
     # where we may guarantee that for all k' >= k, the denominator q_{k'} = 2
     
-    # Biggest difficulty: finding a sufficient 'stop' condition that guarantees we won't miss denominators q >= 3
+    # Biggest difficulty: finding a 'stop' condition that guarantees we won't miss denominators q >= 3
     
-    k_list = kneading_list(theta)
-    
-    preperiod = k_list[0]
-    period = k_list[1]
-    
-    m = len(preperiod)
-    l = len(period)
-    
-    if m == 0: # periodic kneading sequence: know that it terminates at S_k = l
-    
-        kneading = period
+    if theta.denominator % 2 != 0:
+        kneading = upper_kneading(theta)
+        n = len(kneading)
         S = 1
         address = [1]
         
-        while S < l:
+        while S < n:
             j = S + 1
             difference_found = False
             
@@ -728,6 +724,14 @@ def internal_address(theta):
         
     else: # strictly preperiodic: infinite kneading sequence
     # Lemma: if S_k < m, then S_{k+1} < m + m * l
+    
+        k_list = kneading_list(theta)
+        
+        preperiod = k_list[0]
+        period = k_list[1]
+        
+        m = len(preperiod)
+        l = len(period)
     
         kneading = preperiod + (m * period)
     
@@ -982,9 +986,11 @@ def internal_address(theta):
 def denominators_angled_internal_address(theta):
     # Input is a rational theta in the form of a Fraction
     # Output is the list of denominators in the angled internal address of theta
-    # If theta has odd denominator, the list is finite. if not, all denominators after the listed ones are 2
+    # If theta has odd denominator, the list is finite
+    # If not, all denominators after the listed ones are 2
     
-    # Recall that, in the function internal_address, for preperiodic theta, the last S computed has denominator 2
+    # In internal_address, for preperiodic theta, the last S computed has denominator 2
+    # And for periodic, the last S has denominator 1
     
     k_list = kneading_list(theta)
     
@@ -1675,27 +1681,21 @@ def angles_landing_at_P_preperiodic(theta):
 
 ####
 
-def angles_landing_at_roots_periodic(theta):
+def adjacent_angles_landing_at_roots_periodic(theta):
     # Input is a periodic theta under doubling
-    # Output is the collection of angles landing at the roots of the periodic Fatou components
+    # Output is the collection of adjacent angles landing at the roots of the periodic Fatou components
     
-    # Less computationally intensive way of finding the period of theta:
-    
-    n = 1
-    current_orbit = (2 * theta) % 1
-    
-    while not fractions_equal(current_orbit, theta):
-    
-        n += 1
-        current_orbit = (2 * current_orbit) % 1
-    
-    # now n is the period
-        
+    n = period(theta)  
     
     angles_at_roots = []
     
     current_angle = theta
     current_partner = partner_angle(theta)
+    
+    # make sure order is increasing
+    
+    if current_angle > current_partner:
+        current_angle, current_partner = current_partner, current_angle
     
     for i in range(n):
         
@@ -1967,41 +1967,37 @@ def forbidden_region_dyadic(theta):
 
 def forbidden_region(theta):
     # Input is a rational angle theta
-    # Output is the forbidden_region of the Hubbard tree of f_{c_{theta}}
-    
+    # c_theta is the landing point of theta if it is preperiodic,
+    # and the center of the hyprbolic component that theta lands at the root of,
+    # if thata is periodic
+    # Output is the forbidden_region of the correspoding Hubbard tree, as a collection of disjoint arcs
     # To find the forbidden region, need to find the attaching points of the preimage Hubbard tree
-    # Divide into two cases: attaching point is in P or not
     
-    # Not in P: it is a branch point of the preimage tree, and maps into a periodic branch cycle
-    # Need to find all periodic branch portraits, iterate preimages until leaves stop separating P
+    # CASE theta PREPERIODIC: theta preperiodic
+        # Two possibilities: attaching point is in P or not
     
-    # In P: Find those points in P where the Hubbard tree gains a new branch at its image
-    # if f hyperbolic, only happens once, if f subhyperbolic, may happen many times
+        # Not in P: it is a branch point of the preimage tree, and maps into a periodic branch cycle
+        # Need to find all periodic branch portraits, iterate preimages until leaves stop separating P
     
-    # Danger: Orbit of P could fall into a periodic branch orbit (ex.: 9/56), want to treat these
-    # separately. This is because that determine whether the point is a branch point,
-    # or possible attaching point, don't work well if the point itself is in P
-    # (this was not possible in the dyadic case)
-
-    P = preperiodic_orbit(theta)
-    diameter = major_leaf(theta)
-    per_branch_portraits = periodic_branch_portraits(theta)
+        # In P: Find those points in P where the Hubbard tree gains a new branch at its image
+        # If f subhyperbolic, may happen many times
     
-    m = len(kneading_list(theta)[0])
+        # Danger: Orbit of P could fall into a periodic branch orbit (ex.: 9/56), want to treat these
+        # separately. This is because the funcctions that determine whether the point is a branch point,
+        # or possible attaching point, don't work well if the point itself is in P
+        # (this was not possible in the dyadic case)
     
-    if theta.denominator % 2 == 0:
+    if theta.denominator % 2 == 0: # theta preperiodic
         
-        periodic = False
+        P = preperiodic_orbit(theta)
+        diameter = major_leaf(theta)
+        per_branch_portraits = periodic_branch_portraits(theta)
         angles_at_P = angles_landing_at_P_preperiodic(theta)
+        m = len(kneading_list(theta)[0])
         
-    else:
-        periodic = True
-        angles_at_roots = angles_landing_at_roots_periodic(theta)
-    
-    # We want to exclude the branch portrait corresponding to the periodic orbit of preperiodic theta
-    # This only happens if theta is preperiodic and three or more rays land at each point of P
-    
-    if periodic == False:
+        # We want to exclude the branch portrait corresponding to the periodic orbit of preperiodic theta
+        # This only happens if theta is preperiodic and three or more rays land at each point of P
+        
         if len(angles_at_P[0]) >= 3:
         
             found_postcritical_portrait = False
@@ -2043,85 +2039,84 @@ def forbidden_region(theta):
                 
             per_branch_portraits.pop(index_of_postcritical_portait)
     
-    # Now we've excluded the postcritical portrait from those branch point
-    # Treat postcritical portrait of P separately after
-    
-    candidate_points = []
-    
-    for portrait in per_branch_portraits:
-        for angles_landing_at_point in portrait:
-            
-            preperiodic_preimage = preimage_angles_landing_at_preperiodic_point(angles_landing_at_point)
-            
-            candidate_point = {}
-            
-            for angle in preperiodic_preimage:
-                candidate_point[angle] = False 
-                
-                # This says that the corresponding arcs are not yet preimages of forbidden arcs
-            
-            candidate_points.append(candidate_point)
+        # Now we've excluded the postcritical portrait from those branch point
+        # Treat postcritical portrait of P separately after
         
-    # Now, we have created the first list of candidates for attaching points of the Hubbard tree,
-    # And for the corresponding arcs that could be forbidden
-    # Note that a forbidden region has not yet been identified, and so all arcs are labeled False
-    # As they are not yet preimages of forbidden arcs
+        candidate_points = []
+        
+        for portrait in per_branch_portraits:
+            for angles_landing_at_point in portrait:
+                
+                preperiodic_preimage = preimage_angles_landing_at_preperiodic_point(angles_landing_at_point)
+                
+                candidate_point = {}
+                
+                for angle in preperiodic_preimage:
+                    candidate_point[angle] = False 
+                    
+                    # This says that the corresponding arcs are not yet preimages of forbidden arcs
+                
+                candidate_points.append(candidate_point)
+            
+        # Now, we have created the first list of candidates for attaching points of the Hubbard tree,
+        # And for the corresponding arcs that could be forbidden
+        # Note that a forbidden region has not yet been identified, and so all arcs are labeled False
+        # As they are not yet preimages of forbidden arcs
 
-    forbidden_arcs = []
-    no_more_attaching_points = False
-    
-    while not no_more_attaching_points:
+        forbidden_arcs = []
+        no_more_attaching_points = False
         
-        new_list_of_candidate_points = []
-        
-        for candidate_point in candidate_points:
+        while not no_more_attaching_points:
+            
+            new_list_of_candidate_points = []
+            
+            for candidate_point in candidate_points:
+                    
+                if is_possible_attaching_point(candidate_point, P):
+                    # the arcs must separate at least two points of P, otherwise the point is not a possible attaching
+                    # point, nor do we add its preimages
                 
-            if is_possible_attaching_point(candidate_point, P):
-                # the arcs must separate at least two points of P, otherwise the point is not a possible attaching
-                # point, nor do we add its preimages
-            
-                for angle in candidate_point:
-                    
-                    next_angle = next_in_cyclic_order(angle, candidate_point)
-                    open_arc = arc(angle, next_angle, False)
-                    
-                    if contains(open_arc, P) == False and (candidate_point[angle] == False):
-                        forbidden_arcs.append(open_arc)
-                        # Add the forbidden arcs, if it is not already a preimage of a forbidden arc
+                    for angle in candidate_point:
                         
-                if is_branch_point(candidate_point, P): 
-                    # if it is a branch point of H, then adds the two preimages with labels
-                    # Recall that when taking the preimage points, the preimages of forbidden arcs get the label
-                    # True, so that they are no counted as different forbidden arcs
-                    
-                    preimages = preimages_with_labels(candidate_point, P, diameter)
-                    new_list_of_candidate_points += preimages
-                    
-        candidate_points = new_list_of_candidate_points
+                        next_angle = next_in_cyclic_order(angle, candidate_point)
+                        open_arc = arc(angle, next_angle, False)
+                        
+                        if contains(open_arc, P) == False and (candidate_point[angle] == False):
+                            forbidden_arcs.append(open_arc)
+                            # Add the forbidden arcs, if it is not already a preimage of a forbidden arc
+                            
+                    if is_branch_point(candidate_point, P): 
+                        # if it is a branch point of H, then adds the two preimages with labels
+                        # Recall that when taking the preimage points, the preimages of forbidden arcs get the label
+                        # True, so that they are no counted as different forbidden arcs
+                        
+                        preimages = preimages_with_labels(candidate_point, P, diameter)
+                        new_list_of_candidate_points += preimages
+                        
+            candidate_points = new_list_of_candidate_points
+            
+            if candidate_points == []:
+                no_more_attaching_points = True
+                
+        # Obtained list of forbidden arcs for the preperiodic preimages of periodic branch points
+        # Now treat attaching points in P separately
         
-        if candidate_points == []:
-            no_more_attaching_points = True
-            
-    # Obtained list of forbidden arcs for the preperiodic preimages of periodic branch points
-    # Now treat attaching points in P separately
-    
-    if periodic == False:
         if len(angles_at_P[0]) >= 2:
-            
+                
             # Need to find postcritical attaching points
             # They are exactly the postcritical points c_i for which f(c_i) has more branches than c_i
             # Still measure this with respect to leaves and separation of P, but ignore the point itself
-            
+                
             for i in range(m):
                 c_i = angles_at_P[i]
                 f_c_i = angles_at_P[i+1]
-                
+                    
                 # If a leaf of c_i doesn't separate P \ {angles at c_i},
                 # and its image leaf of f_c_i separates P \ {angles at f_c_i},
                 # then it corresponds to a forbidden arc
                 
                 # Remark: because of non-periodicity, only need to exclude, from P, the angle P[i] landing at c_i
-                
+                    
                 P_excluded_theta_i = P.copy()
                 P_excluded_theta_i.pop(i)
                 
@@ -2193,25 +2188,183 @@ def forbidden_region(theta):
                             # either open_arc0 or open_arc1, whichever has 0 points in it
                             
                             forbidden_arcs.append(open_arc)
-    
-    else: # periodic = True
-        # Repeat roughly same process: find the open arcs that dont contain points of P \ {...},
-        # and whose image separates P \ {...}
-        # Remark: careful with satellite orbits, may overcount forbidden arcs of the roots
-        # don't need to consider satellite cases 
-        if len(angles_at_roots) == 2:
-            
-            return
+
+        # completed finding forbidden arcs for preperiodic theta
+   
+    # CASE theta PERIODIC:
+        # Exactly one attaching point of the preimage tree is in P
+        # corresponds to a jump in number of branches:
+        # 1 = \nu(c_i) < \nu(f(c_i)) = 2
+        # Need to exclude the angle sector corresponding to the angles adjacent to the Fatou
+        # component of c_i
+        # Care with separation: harder to establish because the angles land at the roots,
+        # and don't necessarily identify the centers of the components to separate
         
-        # NEED TO FIX ISSUE WITH UPPER KNEADING SEQUENCES
-    
-    
-    
+        # All other attaching points are preimages periodic branch points
+        # Danger: the root points of the periodic Fatou components,
+        # which are used to compute the case above, may be a periodic branch point
+        # Happens iff the hyperbolic component W associated to theta is satellite with denominator q > 2
+        # Needs to be treated separately in terms of the separation of arcs/leaves    
+   
+    else: 
+        # The corresponding portrait is the portrait of theta, and the last in the list
+        # Will need to work with preimages and labels, but need to be careful about separation
+        
+        if theta == 0:
+            return [arc(0,0, False)]
+            # Very degenerate case, consider later
+            # only to guarantee internal address has at least 2 entries
+        
+        orbit_theta = preperiodic_orbit(theta)
+        P = orbit_theta
+        
+        per_branch_portraits = periodic_branch_portraits(theta)
+        num_portraits = len(per_branch_portraits)
+        
+        int_address = internal_address(theta)
+        
+        root_is_satellite = False
+        
+        if (int_address[-1] % int_address[-2] == 0) and (int_address[-1] // int_address[-2] > 2):
+        # root points of periodic Fatou components are satellite
+            root_is_satellite = True
+            N = num_portraits
+        else:
+            N = num_portraits - 1
+            
+        candidate_points = []
+        
+        ################## TEST ###########    
+        
+        for i in range(N): # Repeat as above, for theta preperiodic
+            portrait = per_branch_portraits[i]
+            for angles_landing_at_point in portrait:
+                
+                preperiodic_preimage = preimage_angles_landing_at_preperiodic_point(angles_landing_at_point)
+                
+                candidate_point = {}
+                
+                for angle in preperiodic_preimage:
+                    candidate_point[angle] = False 
+                    
+                    # This says that the corresponding arcs are not yet preimages of forbidden arcs
+                
+                candidate_points.append(candidate_point)
+            
+        # Now, we have created the first list of candidates for attaching points of the Hubbard tree,
+        # And for the corresponding arcs that could be forbidden
+        # Note that a forbidden region has not yet been identified, and so all arcs are labeled False
+        # As they are not yet preimages of forbidden arcs
+
+        forbidden_arcs = []
+        no_more_attaching_points = False
+        
+        while not no_more_attaching_points:
+            
+            new_list_of_candidate_points = []
+            
+            for candidate_point in candidate_points:
+                    
+                if is_possible_attaching_point(candidate_point, P):
+                    # the arcs must separate at least two points of P, otherwise the point is not a possible attaching
+                    # point, nor do we add its preimages
+                
+                    for angle in candidate_point:
+                        
+                        next_angle = next_in_cyclic_order(angle, candidate_point)
+                        open_arc = arc(angle, next_angle, False)
+                        
+                        if contains(open_arc, P) == False and (candidate_point[angle] == False):
+                            forbidden_arcs.append(open_arc)
+                            # Add the forbidden arcs, if it is not already a preimage of a forbidden arc
+                            
+                    if is_branch_point(candidate_point, P): 
+                        # if it is a branch point of H, then adds the two preimages with labels
+                        # Recall that when taking the preimage points, the preimages of forbidden arcs get the label
+                        # True, so that they are no counted as different forbidden arcs
+                        
+                        preimages = preimages_with_labels(candidate_point, P, diameter)
+                        new_list_of_candidate_points += preimages
+                        
+            candidate_points = new_list_of_candidate_points
+            
+            if candidate_points == []:
+                no_more_attaching_points = True
+        
+        # SPECIAL CASE: Finding attaching point in P. Mimic for preperiodic
+            # Look at the set of adjacent angles landing at the roots of the periodic Fatou components,
+            # and corresponding arcs. Check if (open) arc doesn't contain points of orbit_theta,
+            # But the image does
+            
+            # Note: Doesn't find the attaching point c_0 for p/q-rabbits!
+        
+        adj_angles = adjacent_angles_landing_at_roots_periodic(theta)
+        
+        n = len(adj_angles) # Total number of periodic Fatou components
+        
+        found_attaching_point = False
+        i = 0 # note that the index is shifted
+        
+        while i < n - 1 and found_attaching_point == False: # only need to test for c_1, c_2, ..., c_{n-1}, and not c_n = c_0
+            
+            # because of the way we computed the adjacent angles,
+            # the open arc chose will always be the correct one (instead of the complementary one)
+            
+            open_arc = arc(adj_angles[i][0], adj_angles[i][1], False)
+            
+            arc_contains_orbit_theta = False
+            
+            p = len(orbit_theta)
+            j = 0
+            
+            while j < p and arc_contains_orbit_theta == False:
+                
+                iterate_theta = orbit_theta[j]
+                if in_arc(iterate_theta, open_arc):
+                    arc_contains_orbit_theta = True
+                j += 1
+                
+            if arc_contains_orbit_theta == False:
+                
+                image_open_arc = arc(adj_angles[i+1][0], adj_angles[i+1][1], False)
+                
+                image_arc_contains_orbit_theta = False
+                k = 0
+                
+                while k < p and image_arc_contains_orbit_theta == False:
+                    
+                    other_iterate_theta = orbit_theta[k]
+                    if in_arc(other_iterate_theta, image_open_arc):
+                        image_arc_contains_orbit_theta = True
+                    k += 1
+                
+                if image_arc_contains_orbit_theta:
+                    
+                    forbidden_arcs.append(open_arc)
+                
+            i += 1        
+            
+        # SPECIAL CASE: root of periodic Fatou components is a branch point
+            # Same idea as preperiodic: need to compute preiamges with labels
+            # until the corresponding leaf does not separate the postcritical set
+            # needs more care with checking separation, since the orbit of theta lands at the root points
+        
+        if root_is_satellite:
+        
+            if len(int_address) == 2: # (p/q)-rabbit
+                return
+            
+            else:
+                # Conjecture: attaching point is the unique -alpha fixed point at the first small rabbit
+                # at the critical point
+                # forbidden arcs correspond to the "legs" not going to the renormalization beta fixed point
+                
+                portrait_theta = per_branch_portraits[-1]
+        
+                return
+        
     
     # Now we sort the forbidden arcs in cyclic order within the unit circle
-    
-    # Only nuance: if periodic, in the case of a rabbit, a root point of a periodic Fatou component
-    # may coincide with a periodic satellite branch point
 
     arcs_w_left_endpoints = {}
     
