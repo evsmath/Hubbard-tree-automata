@@ -265,9 +265,9 @@ def image_leaf(l):
     
 ####
 
-####################################
-# KNEADING SEQUENCES AND ADDRESSES #
-####################################
+###################################################
+# KNEADING SEQUENCES, ADDRESSES AND COMBINATORICS #
+###################################################
 
 ####
 
@@ -420,13 +420,87 @@ def partner_angle(theta):
         
 ####
 
+def cardioid_angle(t):
+    # Input is t = p/q rotation number in the form of a Fraction
+    # Output is the angle theta_minus landing at the p/q-sublimb of the main cardioid
+    # Recall that theta_plus = theta_minus + 1/(2^q -1)
+    
+    # Proof of this formula by Douady + tail estimates on the infinite series
+    
+    q = t.denominator
+    
+    b_0 = 2*q + 2
+    
+    partial_sum = 0
+    
+    power = 1
+    
+    for b in range(1, b_0 + 1):
+        
+        power = power * 2
+        
+        partial_sum += (math.ceil(b*t) - 1) / power
+        
+    q_power = (2 ** q) - 1
+    
+    a_minus = math.ceil(q_power * partial_sum)
+        
+    return Fraction(a_minus, q_power)
+
+####
+
+def cardioid_tuning(alpha, t):
+    # Input is a periodic angle landing at the root of a hyperbolic component and t = p/q rotation number
+    # Output is the angle theta_minus(t) landing at the root of the p/q-sublimb, from the left
+    
+    partner = partner_angle(alpha)
+    
+    if alpha < partner:
+        alpha_minus = alpha
+        alpha_plus = partner
+    else:
+        alpha_minus = partner
+        alpha_plus = alpha
+    
+    u_minus = binary_period(alpha_minus)
+    u_plus = binary_period(alpha_plus)
+    
+    card_minus = cardioid_angle(t)
+    
+    tuning_reference = binary_period(card_minus)
+    
+    s = ''
+    j = 0
+    
+    for j in tuning_reference:
+        if j == '0' :
+            s += u_minus
+        if j == '1' :
+            s += u_plus
+        
+    num = int(s, 2)
+    
+    angle = Fraction(num, (2 ** len(s)) - 1)
+    
+    return angle
+
+####
+
 def upper_kneading(theta):
     # Given an angle theta periodic under doubling
     # Computes the upper_kneading sequence of theta
     
-    # NEED TO FIX
+    # The trick: find the angle of tuning with the basilica
+    # Even though this lands at a parabolic point on the hyperbolic component that theta lands at the root of,
+    # The kneading sequence will coincide with the upper kneading sequence of theta up to the n-th entry
+    
+    theta_minus_one_half = cardioid_tuning(theta, Fraction(1,2))
+    
+    n = period(theta)
 
-    return
+    kneading_theta_minus_one_half = kneading_list(theta_minus_one_half)[1]
+
+    return kneading_theta_minus_one_half[: n ]
 
 ####        
 
@@ -1194,72 +1268,6 @@ def preperiodic_orbit(theta):
         angle = (2 * angle) % 1
     
     return orb
-
-####
-
-def cardioid_angle(t):
-    # Input is t = p/q rotation number in the form of a Fraction
-    # Output is the angle theta_minus landing at the p/q-sublimb of the main cardioid
-    # Recall that theta_plus = theta_minus + 1/(2^q -1)
-    
-    # Proof of this formula by Douady + tail estimates on the infinite series
-    
-    q = t.denominator
-    
-    b_0 = 2*q + 2
-    
-    partial_sum = 0
-    
-    power = 1
-    
-    for b in range(1, b_0 + 1):
-        
-        power = power * 2
-        
-        partial_sum += (math.ceil(b*t) - 1) / power
-        
-    q_power = (2 ** q) - 1
-    
-    a_minus = math.ceil(q_power * partial_sum)
-        
-    return Fraction(a_minus, q_power)
-
-####
-
-def cardioid_tuning(alpha, t):
-    # Input is a periodic angle landing at the root of a hyperbolic component and t = p/q rotation number
-    # Output is the angle theta_minus(t) landing at the root of the p/q-sublimb, from the left
-    
-    partner = partner_angle(alpha)
-    
-    if alpha < partner:
-        alpha_minus = alpha
-        alpha_plus = partner
-    else:
-        alpha_minus = partner
-        alpha_plus = alpha
-    
-    u_minus = binary_period(alpha_minus)
-    u_plus = binary_period(alpha_plus)
-    
-    card_minus = cardioid_angle(t)
-    
-    tuning_reference = binary_period(card_minus)
-    
-    s = ''
-    j = 0
-    
-    for j in tuning_reference:
-        if j == '0' :
-            s += u_minus
-        if j == '1' :
-            s += u_plus
-        
-    num = int(s, 2)
-    
-    angle = Fraction(num, (2 ** len(s)) - 1)
-    
-    return angle
 
 ####
 
