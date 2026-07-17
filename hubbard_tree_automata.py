@@ -1773,6 +1773,8 @@ def is_possible_attaching_point(angles_landing_at_point, P):
     # Decides if at least two of the corresponding arcs contain points of P
     # If only one arc did, then the point is not a candidate for being on the tree
     
+    # Remark: ignores those P landing at the point itself
+    
     at_least_one_arc_with_points_of_P = False
     at_least_two_arcs_with_points_of_P = False
     
@@ -1798,6 +1800,8 @@ def is_possible_attaching_point(angles_landing_at_point, P):
 def is_branch_point(angles_landing_at_point, P):
     # Given a set of angles landing at a point and a set P of points
     # Decides if the point is a branch point of the corresponding tree or not
+    
+    # Remark: ignores those P landing at the point itself
     
     at_least_one_arc_with_points_of_P = False
     at_least_two_arcs_with_points_of_P = False
@@ -1966,14 +1970,13 @@ def forbidden_region_dyadic(theta):
 ####
 
 def forbidden_region(theta):
-    # Input is a rational angle theta
-    # c_theta is the landing point of theta if it is preperiodic,
-    # and the center of the hyprbolic component that theta lands at the root of,
-    # if thata is periodic
-    # Output is the forbidden_region of the correspoding Hubbard tree, as a collection of disjoint arcs
+    # Input is a rational angle theta, where c_theta is the landing point of theta if it is preperiodic,
+    # and the center of the hyperbolic component that theta lands at the root of, if periodic
+    
+    # Output is the forbidden region of the correspoding Hubbard tree, as a collection of disjoint arcs
     # To find the forbidden region, need to find the attaching points of the preimage Hubbard tree
     
-    # CASE theta PREPERIODIC: theta preperiodic
+    # CASE theta PREPERIODIC:
         # Two possibilities: attaching point is in P or not
     
         # Not in P: it is a branch point of the preimage tree, and maps into a periodic branch cycle
@@ -2040,7 +2043,7 @@ def forbidden_region(theta):
             per_branch_portraits.pop(index_of_postcritical_portait)
     
         # Now we've excluded the postcritical portrait from those branch point
-        # Treat postcritical portrait of P separately after
+        # Will treat postcritical portrait of P separately after
         
         candidate_points = []
         
@@ -2058,7 +2061,7 @@ def forbidden_region(theta):
                 
                 candidate_points.append(candidate_point)
             
-        # Now, we have created the first list of candidates for attaching points of the Hubbard tree,
+        # We have created the first list of candidates for attaching points of the Hubbard tree,
         # And for the corresponding arcs that could be forbidden
         # Note that a forbidden region has not yet been identified, and so all arcs are labeled False
         # As they are not yet preimages of forbidden arcs
@@ -2190,6 +2193,8 @@ def forbidden_region(theta):
                             forbidden_arcs.append(open_arc)
 
         # completed finding forbidden arcs for preperiodic theta
+        
+    ####
    
     # CASE theta PERIODIC:
         # Exactly one attaching point of the preimage tree is in P
@@ -2197,18 +2202,16 @@ def forbidden_region(theta):
         # 1 = \nu(c_i) < \nu(f(c_i)) = 2
         # Need to exclude the angle sector corresponding to the angles adjacent to the Fatou
         # component of c_i
-        # Care with separation: harder to establish because the angles land at the roots,
-        # and don't necessarily identify the centers of the components to separate
         
         # All other attaching points are preimages periodic branch points
-        # Danger: the root points of the periodic Fatou components,
+        # Remark: the root points of the periodic Fatou components,
         # which are used to compute the case above, may be a periodic branch point
         # Happens iff the hyperbolic component W associated to theta is satellite with denominator q > 2
-        # Needs to be treated separately in terms of the separation of arcs/leaves    
+        # However, because the candidate attaching points are strictly preperiodic,
+        # Will not give any extra trouble with respect separation of P,
+        # that is, estabilishing them as possible attaching points or branch points
    
     else: 
-        # The corresponding portrait is the portrait of theta, and the last in the list
-        # Will need to work with preimages and labels, but need to be careful about separation
         
         if theta == 0:
             return [arc(0,0, False)]
@@ -2232,24 +2235,16 @@ def forbidden_region(theta):
         
         per_branch_portraits = periodic_branch_portraits(theta)
         num_portraits = len(per_branch_portraits)
-        
-        root_is_satellite = False
-        
-        if (int_address[-1] % int_address[-2] == 0) and (int_address[-1] // int_address[-2] > 2):
-        # root points of periodic Fatou components are satellite
-            root_is_satellite = True
-            N = num_portraits
-        else:
-            N = num_portraits - 1
             
         candidate_points = []
         
-        # Ignore the portrait corresponding to theta if the root point is satellite
-        # Will treat this case later separately
+        # If we want to be careful with the possibility of the last portrait being that of the
+        # satellite, periodic, branch root points, may want to consider it separately
+        
         # Repeat procedure for preperiodic theta for all other periodic branch portraits
         # to find preperiodic attaching points, which are branch points of the preimage tree
         
-        for i in range(N):
+        for i in range(num_portraits):
             portrait = per_branch_portraits[i]
             for angles_landing_at_point in portrait:
                 
@@ -2354,21 +2349,6 @@ def forbidden_region(theta):
                     forbidden_arcs.append(open_arc)
                 
             i += 1        
-            
-        # SPECIAL CASE: root of periodic Fatou components is a branch point
-            # Same idea as preperiodic: need to compute preiamges with labels
-            # until the corresponding leaf does not separate the postcritical set
-            # needs more care with checking separation, since the orbit of theta lands at the root points
-        
-        if root_is_satellite:
-        
-            # Conjecture: attaching point is the -alpha fixed point at the critical small rabbit
-            # forbidden arcs correspond to the "legs" not going to the renormalization beta fixed point
-            
-            portrait_theta = per_branch_portraits[-1]
-    
-            return
-        
     
     # Now we sort the forbidden arcs in cyclic order within the unit circle
 
@@ -2838,8 +2818,8 @@ def mating_automata(A,B):
 
 ####
 
-def mating_dyadics(theta1, theta2):
-    # Given two dyadic angles, whose corresponding parameter rays land at parameters of the Mandelbrot set
+def mating(theta1, theta2):
+    # Given two angles, whose corresponding parameter rays land at parameters of the Mandelbrot set
     # Returns the automaton corresponding to ray connections between the Hubbard trees in the mating
     # of the corresponding polynomials
     

@@ -350,3 +350,41 @@ def main2():
     return
 
 ####
+
+def main3(theta, N):
+    
+    power = 2**N
+    
+    for a in range(1, power):
+        
+        A = hta.mating(theta, Fraction(a, power))
+        
+        if A.size == 0:
+            print(Fraction(a, power))
+            
+    return
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
