@@ -2385,6 +2385,8 @@ def forbidden_region(theta):
         
     return sorted_arcs
 
+    # QUESTION: for theta non-dyadic, is 0 always in a forbidden arc (and not some preimage?)
+
 ####
 
 #######################
@@ -2426,7 +2428,16 @@ def hubbard_automaton(theta):
     # Need to keep track of isolated angles/consecutive forbidden arcs
     # Note that the forbidden arcs are already ordered counterclockwise, starting from 0
     
-    forbidden_arcs = forbidden_region_dyadic(theta)
+    theta_dyadic = False
+    denom = theta.denominator
+    
+    while denom % 2 == 0:
+        denom = denom // 2
+        
+    if denom == 1:
+        theta_dyadic = True
+    
+    forbidden_arcs = forbidden_region(theta)
     A = len(forbidden_arcs)
     
     if A == 0:
@@ -2446,9 +2457,23 @@ def hubbard_automaton(theta):
             degenerate_arcs.append( arc(forbidden_arcs[i].right_endpoint, forbidden_arcs[i+1].left_endpoint, True) )
     
     # Finds the isolated angles / degenerate closed arcs within two consecutive forbidden regions (open arcs)
+    # Need to consider only until A - 1 because either theta is dyadic, and 0 is not a degenerate arc,
+    # Or theta is not dyadic, and 0 is in a forbidden region
+    # That is, the first forbidden arc and the last one (in cyclic order) cannot "touch" at 0
     
-    marked_points = [Fraction(0,1), Fraction(1,2)]
-    
+    if theta_dyadic:
+        marked_points = [Fraction(0,1), Fraction(1,2)]
+    else:
+        # Want to include another forbidden arc, the preimage of the forbiden arc that contains 0
+        # so that 0 and 1/2 are inside of the list of forbidden arcs
+        
+        f_arc_containing_0 = forbidden_arcs[-1]
+        f_arc_containing_half = arc( f_arc_containing_0.left_endpoint / 2, (1 + f_arc_containing_0.right_endpoint) / 2, False )
+        
+        forbidden_arcs.append(f_arc_containing_half)
+        A += 1
+        marked_points = []
+        
     for forbidden_arc in forbidden_arcs:
         
         marked_points += preperiodic_orbit(forbidden_arc.left_endpoint)
@@ -2480,6 +2505,8 @@ def hubbard_automaton(theta):
                 
         # Verifies if the arc between the marked points is forbidden or not
         # If not, adds it to the list of states with its name and address
+        # Note that we are skipping for now the arc between the last marked point and the first
+        # In the non-dyadic case: this is forbidden
         
         if not_a_forbidden_arc: 
                 
@@ -2498,29 +2525,21 @@ def hubbard_automaton(theta):
             
         c += 1
         
-    # Adds last arc between marked points, of the form [t,0]:
+    # If dyadic, adds last arc between marked points, of the form [t,0]: always not forbidden
     
-    closed_arc = arc(marked_points[m-1], marked_points[0], True)
+    if theta_dyadic:    
     
-    not_a_forbidden_arc = True
-    
-    for forbidden_arc in forbidden_arcs:
+        closed_arc = arc(marked_points[m-1], marked_points[0], True)
         
-        if (closed_arc.left_endpoint == forbidden_arc.left_endpoint and closed_arc.right_endpoint == forbidden_arc.right_endpoint):
-            not_a_forbidden_arc = False
-            
-    if not_a_forbidden_arc:
-    
         name = 'A_' + str(i)
         address = i
         bit = 1 # The last arc in counterclockwise order is always labeled 1
                 
         states.append([name, address, bit])
         dict_addresses_to_arcs[i] = closed_arc
+        i += 1
         
     number_of_non_degenerate_arc_states = i
-            
-    i += 1
     
     # Now we must to attribute names and addresses to the degenerate arcs and their images.
     # The solution to understanding the degenerate arcs in the Markov partition is that each one,
@@ -2599,10 +2618,10 @@ def hubbard_automaton(theta):
     
     # For non-degenerate arcs, will always map (bijectively) over a union of arcs
     
-    for j in range(number_of_non_degenerate_arc_states + 1): # Here we range only over non-degenerate origin states first
+    for j in range(number_of_non_degenerate_arc_states): # Here we range only over non-degenerate origin states first
         
         arc_j = dict_addresses_to_arcs[j]
-        image_j = image_arc(arc_j)
+        image_j = image_arc(arc_j) # No problem with image being smaller
         
         for i in dict_addresses_to_arcs:
             
