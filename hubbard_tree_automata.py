@@ -2221,6 +2221,8 @@ def forbidden_region(theta):
         int_address = internal_address(theta)
         adj_angles = adjacent_angles_landing_at_roots_periodic(theta)
         
+        diameter = major_leaf(theta)
+        
         # Treat (p/q)-rabbit case separately
         
         if len(int_address) == 2:
