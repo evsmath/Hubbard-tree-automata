@@ -210,7 +210,7 @@ def info(theta1, N):
     
     for a in range(1, denom):
         theta2 = Fraction(a, denom)
-        A = hta.mating_dyadics(theta1, theta2)
+        A = hta.mating(theta1, theta2)
         M = A.matrix
         n_components, labels = connected_components(csgraph = M, directed = True, connection = 'weak')
         ent = entropy(M)
