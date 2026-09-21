@@ -487,7 +487,7 @@ def cardioid_tuning(alpha, t):
 
 ####
 
-def upper_kneading(theta):
+def upper_kneading(theta): ### MAY CHANGE LATER TO VERSION THAT JUST TESTS * = 0 OR 1
     # Given an angle theta periodic under doubling
     # Computes the upper_kneading sequence of theta
     
@@ -689,6 +689,112 @@ def numerators_angled_internal_address_dyadic(theta):
 ####
 
 def internal_address(theta):
+    # Input is a rational angle theta, in the form of a Fraction
+    
+    # If theta is periodic under doubling, outputs the (terminating) internal address
+    # of the (center of the) hyperbolic component that theta lands at the root of
+    
+    # If theta is preperiodic, outputs the internal address up until S_k >= m + l - 2
+    # Guarantees that for all subsequent entries S_{k'}, the denominator is q_{k'} = 2
+    
+    if theta.denominator % 2 != 0:
+        kneading = upper_kneading(theta)
+        n = len(kneading)
+        S = 1
+        address = [1]
+        
+        while S < n:
+            j = S + 1
+            difference_found = False
+            
+            while not difference_found:
+                eta_lower = kneading[j - 1 - S]
+                eta_upper = kneading[j - 1]
+                
+                if eta_lower == eta_upper:
+                    j += 1
+                
+                else:
+                    difference_found = True
+                    S = j
+                    address.append(S)
+        return address
+    
+    else: # strictly preperiodic: infinite kneading sequence
+
+    # Lemma: if S_k < m, then S_{k+1} < m + m * l
+    
+        k_list = kneading_list(theta)
+        
+        preperiod = k_list[0]
+        period = k_list[1]
+        
+        m = len(preperiod)
+        l = len(period)
+    
+        # Lemma: if S_k < m, then S_{k+1} < m + m * l
+        # Lemma: if S_k >= m, then S_{k+1} <= S_k + m + l
+        # Can use this to improve the code below, but below is simple enough
+        
+        kneading = preperiod + (m * period)
+    
+        S = 1
+        address = [1]
+        
+        while S <= m + l - 2:
+            
+            j = S + 1
+            difference_found = False
+            
+            while not difference_found:
+                
+                while len(kneading) <= j - 1:
+                    kneading += period
+                
+                eta_lower = kneading[j - 1 - S]
+                eta_upper = kneading[j - 1]
+                
+                if eta_lower == eta_upper:
+                    j += 1
+                
+                else:
+                    difference_found = True
+                    S = j
+                    address.append(S)
+                    
+        # Want to compute just one more entry of the internal address, to make sure the last one
+        # computed has denominator 2
+        
+        j = S + 1
+        difference_found = False
+        
+        while not difference_found:
+            
+            while len(kneading) <= j - 1:
+                kneading += period
+            
+            eta_lower = kneading[j - 1 - S]
+            eta_upper = kneading[j - 1]
+            
+            if eta_lower == eta_upper:
+                j += 1
+            
+            else:
+                difference_found = True
+                S = j
+                address.append(S)
+        
+        address.append('...')
+        
+        return address
+
+####
+
+def internal_address_old(theta):
+    
+    ### CAUTION: this is an old version of this function, meant to compute the period of increments
+    # for preperiodic theta
+    
     # Input is a rational angle theta, in the form of a Fraction
     
     # If theta is periodic under doubling, outputs the (terminating) internal address
