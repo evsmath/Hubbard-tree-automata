@@ -31,7 +31,7 @@ def size_of_mating_with(theta, N):
     for a in range(1, denom):
         
         theta2 = Fraction(a, denom)
-        A = hta.mating_dyadics(theta, theta2)
+        A = hta.mating(theta, theta2)
         size = A.size
         
         print(f'Mating {theta} with {theta2}: size = {size}')
