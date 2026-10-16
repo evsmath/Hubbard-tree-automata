@@ -319,8 +319,8 @@ def union_of_arcs(C_1, C_2):
         
         j += 1
     
-    return current_collection
-
+    return current_collection # SOMETHING IS WRONG.
+ 
 ####
 
 class leaf:
