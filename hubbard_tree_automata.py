@@ -191,6 +191,138 @@ def arc_inclusion(arc_1, arc_2):
         
 ####
 
+def negated_arc(arc_1):
+    # Given an arc, outputs the image under the map theta -> -theta
+    a = arc_1.left_endpoint
+    b = arc_1.right_endpoint
+    
+    minus_a = (1 - a) % 1
+    minus_b = (1 - b) % 1
+    
+    return arc(minus_b, minus_a, arc_1.closed)
+
+####
+
+def order_collection_of_arcs(C):
+    # Given a collection of disjoint arcs, orders them counterclockwise, starting from the smallest left endpoint
+    
+    C_ordered = []
+    dict_left_endpoints = {}
+    left_endpoints = []
+    
+    l = len(C)
+
+    for i in range(0, l):
+        
+        current_left_endpoint = C[i].left_endpoint
+        dict_left_endpoints[current_left_endpoint] = i
+        left_endpoints.append(current_left_endpoint)
+    
+    left_endpoints.sort()
+    
+    for left_endpoint in left_endpoints:
+        
+        j = dict_left_endpoints[left_endpoint]
+        arc_j = C[j]
+        C_ordered.append(arc_j)
+        
+    return C_ordered
+
+####
+
+def collection_union_arc(C, arc_extra):
+    # Given a collection of disjoint open arcs and another open arc, possibly intersecting it,
+    # Returns to collection of disjoint arcs corresponding to the set-wise union of the collection with the arc
+    
+    C_ordered = order_collection_of_arcs(C)
+    
+    L = arc_extra.left_endpoint
+    R = arc_extra.right_endpoint
+    
+    union = []
+    
+    # For each arc in the collection, there are 5 possibilities of intersection with arc_extra
+    # Ignore those contained in arc_extra
+    # Include those disjoint from arc_extra
+    # Mark the unique one containing L, if it exists
+    # Mark the unique one containing R, if it exists. If it coincides with previous one, stop and return C_ordered
+    # Finally, using the marked arcs, enlarge arc_extra to include the endpoints coming from them
+    
+    exists_unique_arc_containing_L = False
+    exists_unique_arc_containing_R = False
+    
+    for arc_i in C_ordered:
+        
+        if in_arc(L, arc_i):
+            arc_i_contains_L = True
+        else:
+            arc_i_contains_L = False
+            
+        if in_arc(R, arc_i):
+            arc_i_contains_R = True
+        else:
+            arc_i_contains_R = False
+            
+        if arc_i_contains_L and not arc_i_contains_R:
+            exists_unique_arc_containing_L = True
+            unique_arc_containing_L = arc_i
+            
+        elif arc_i_contains_R and not arc_i_contains_L:
+            exists_unique_arc_containing_R = True
+            unique_arc_containing_R = arc_i
+            
+        elif arc_i_contains_L and arc_i_contains_R:
+            return C_ordered
+        
+        elif arc_inclusion(arc_i, arc_extra) == False:
+            union.append(arc_i)
+            
+    # We have added all arcs from C that are disjoint from arc_extra,
+    # And we've marked the unique arcs containing L and R, if they exist.
+    
+    if exists_unique_arc_containing_L:
+        better_left = unique_arc_containing_L.left_endpoint
+    else:
+        better_left = L
+    
+    if exists_unique_arc_containing_R:
+        better_right = unique_arc_containing_R.right_endpoint
+    else:
+        better_right = R
+    
+    new_arc = arc(better_left, better_right, False)
+    
+    union.append(new_arc)
+    
+    return order_collection_of_arcs(union)
+
+####
+
+def union_of_arcs(C_1, C_2):
+    # Input is two collectons of disjoint arcs
+    # Output is the disjoint union of open arcs formning the set-wise union of the two collections
+    
+    current_collection = order_collection_of_arcs(C_1)
+    
+    l = len(C_2)
+    
+    if l == 0:
+        return current_collection
+    
+    j = 0
+    
+    while j < l:
+        arc_j = C_2[j]
+        
+        current_collection = collection_union_arc(current_collection, arc_j)
+        current_collection = order_collection_of_arcs(current_collection)
+        
+        j += 1
+    
+    return current_collection
+
+####
+
 class leaf:
     # Defines the leaf object class
     # Endpoints are Fractions
