@@ -2860,7 +2860,7 @@ def mark_forward_orbit(C):
 
 ####
 
-def hubbard_automaton(theta):
+def automaton_and_adresses(theta):
     # creates the automaton for theta based on the forbidden region
     # Need to keep track of isolated angles/consecutive forbidden arcs
     # Note that the forbidden arcs are already ordered counterclockwise, starting from 0
@@ -2913,7 +2913,7 @@ def hubbard_automaton(theta):
         # Removes duplicates and sorts, though may not be necessary.
         
     else:
-        # Want to include another forbidden arc, the preimage of the forbiden arc that contains 0
+        # Want to include another ``forbidden'' arc, the preimage of the forbiden arc that contains 0
         # so that 0 and 1/2 are inside of the list of forbidden arcs
         
         f_arc_containing_0 = forbidden_arcs[-1]
@@ -2935,30 +2935,33 @@ def hubbard_automaton(theta):
     c = 0 # Index for the arcs between the marked points
     
     while c < m - 1:
-        closed_arc = arc(marked_points[c], marked_points[c+1], True)
+        closed_arc = arc(marked_points[c], marked_points[c+1], True) # Never degenerate
+        interior = arc(marked_points[c], marked_points[c+1], False) 
         
-        not_a_forbidden_arc = True 
-        for forbidden_arc in forbidden_arcs:
+        not_inside_a_forbidden_arc = True
+        
+        j = 0
+        F = len(forbidden_arcs)
+        
+        while j < F and not_inside_a_forbidden_arc:
+            forbidden_arc = forbidden_arcs[j]
             
-            if (closed_arc.left_endpoint == forbidden_arc.left_endpoint and closed_arc.right_endpoint == forbidden_arc.right_endpoint):
-                not_a_forbidden_arc = False
+            if arc_inclusion(interior, forbidden_arc) == True:
+                not_inside_a_forbidden_arc = False
+            j += 1
+                
+            # Tests if the arc between consecutive marked points is inside of a forbidden arc or not.
+            # Minor issue because forbidden arcs are open and these angle intervals are closed, so take interior
+            
+            # Old version below: 
+            #if (closed_arc.left_endpoint == forbidden_arc.left_endpoint and closed_arc.right_endpoint == forbidden_arc.right_endpoint):
+            #    not_a_forbidden_arc = False
         
-        # Verifies if the arc between the marked points is forbidden or not
         # If not, adds it to the list of states with its name and address
         # Note that we are skipping for now the arc between the last marked point and the first
         # In the non-dyadic case: this is forbidden
         
-        # Q.: Why can't the closed arc be properly contained in a forbidden arc?
-        
-        # All the endpoints of forbidden arcs land on the Hubbard tree
-        # so a marked point (angle on S^1) never iterates strictly inside a forbidden arc
-        # This also includes the extra forbidden arc containing 1/2 created,
-        # Otherwise the image would be strictly inside the forbidden arc containing 0
-        
-        # Therefore an arc determined by consecutive marked points is never contained
-        # as a strict subset of a forbidden arc (otherwise there would some marked point strictly inside)
-        
-        if not_a_forbidden_arc: 
+        if not_inside_a_forbidden_arc: 
                 
             name = 'A_' + str(i)
             address = i
@@ -3102,9 +3105,21 @@ def hubbard_automaton(theta):
                 
     A = automaton(M, states)
                     
-    return A
+    return [A, dict_addresses_to_arcs]
+
+####
+
+def hubbard_automaton(theta):
     
-    return dict_addresses_to_arcs
+    A = automaton_and_adresses(theta)[0]
+    return A
+
+####
+
+def adresses_of_arcs(theta):
+    
+    D = automaton_and_adresses(theta)[1]
+    return D
 
 ####
 
