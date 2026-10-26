@@ -2684,7 +2684,7 @@ def flip(A):
 ####
 
 def intersect_automata(A, B):
-    # Input is two automata with names A and B
+    # Input is two automata A and B
     # Input is the automaton formed by all pairs of states with matching bits,
     # and all allowable transitions
     
@@ -3262,7 +3262,7 @@ def hubbard_tree_automaton(theta):
 
 def adresses_of_arcs(theta):
     
-    D = automaton_and_adresses(theta)[1]
+    D = automaton_and_addresses(theta)[1]
     return D
 
 ####
