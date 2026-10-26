@@ -2908,7 +2908,7 @@ def mark_forward_orbit(C):
 
 ####
 
-def automaton_and_adresses_NEW(theta):
+def automaton_and_addresses(theta):
     # creates the automaton for theta based on the forbidden region
     # Need to keep track of isolated angles/consecutive forbidden arcs
     # Note that the forbidden arcs are already ordered counterclockwise, starting from 0
@@ -3074,234 +3074,103 @@ def automaton_and_adresses_NEW(theta):
     A_trimmed = trim_states(A, forbidden_addresses)
     
     # CURRENT PROBLEM: dict_addresses_of_states doesn't match.
-                    
-    return [A_trimmed, dict_addresses_of_states]
+    # The following code can be ommited: only useful to find the addresses
+    # abuse the fact that the names of the states keep track of the addresses
+    
+    good_addresses = {}
+    
+    A_trimmed_states = A_trimmed.states
+    k = 0
+    for state in A_trimmed_states:
+        name = state[0]
+        address = int(name[2:])
+        good_addresses[k] = dict_addresses_of_states[address]
+        k += 1
+        
+    return [A_trimmed, good_addresses]
 
 ####
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def automaton_and_adresses(theta):
+def hubbard_tree_automaton(theta):
     # creates the automaton for theta based on the forbidden region
     # Need to keep track of isolated angles/consecutive forbidden arcs
     # Note that the forbidden arcs are already ordered counterclockwise, starting from 0
     
-    theta_dyadic = False
-    denom = theta.denominator
-    
-    while denom % 2 == 0:
-        denom = denom // 2
-        
-    if denom == 1:
-        theta_dyadic = True
-        
-    # Decided if theta is dyadic or not
-    
     forbidden_arcs = forbidden_region(theta)
-    A = len(forbidden_arcs)
+    F = len(forbidden_arcs)
     
-    if A == 0:
-        M = np.ones((2,2), dtype = int)
-        
-        states = [['A_0', 0, 0], ['A_1', 1, 1]]
-        
-        return automaton(M, states)
+    marked_angles = mark_forward_orbit(forbidden_arcs)
     
-    # Consider the empty forbidden region separately: Chebychev polynomial z^2 - 2
-    # Janky solution: image of the arc [0,1/2] would mistakenly return the degenerate arc [0,0].
-    # Only case where an arc between marked points would have length >= 1/2 is for theta = Fraction(1,2)
+    if Fraction(0,1) not in marked_angles:
+        marked_angles.append(Fraction(0,1))
+    if Fraction(1,2) not in marked_angles:
+        marked_angles.append(Fraction(1,2))
     
-    degenerate_arcs = []
+    marked_angles.sort()
     
-    for i in range(A-1):
-        if forbidden_arcs[i].right_endpoint == forbidden_arcs[i+1].left_endpoint:
-            degenerate_arcs.append( arc(forbidden_arcs[i].right_endpoint, forbidden_arcs[i+1].left_endpoint, True) )
+    m = len(marked_angles)
     
-    # Finds the isolated angles / degenerate closed arcs within two consecutive forbidden regions (open arcs)
-    # Need to consider only until A - 1 because either theta is dyadic, and 0 is not a degenerate arc,
-    # Or theta is not dyadic, and 0 is in a forbidden region
-    # That is, the first forbidden arc and the last one (in cyclic order) cannot "touch" at 0
-    
-    if theta_dyadic:
-        
-        marked_points = mark_forward_orbit(forbidden_arcs)
-            
-        marked_points += [Fraction(0,1), Fraction(1,2)]
-        
-        marked_points = list(set(marked_points))
-        marked_points.sort()
-        
-        # Removes duplicates and sorts, though may not be necessary.
-        
-    else:
-        # Want to include another ``forbidden'' arc, the preimage of the forbiden arc that contains 0
-        # so that 0 and 1/2 are inside of the list of forbidden arcs
-        
-        f_arc_containing_0 = forbidden_arcs[-1]
-        f_arc_containing_half = arc( f_arc_containing_0.left_endpoint / 2, (1 + f_arc_containing_0.right_endpoint) / 2, False )
-        forbidden_arcs.append(f_arc_containing_half)
-        
-        A += 1 # adjusts the count of the length of set of forbidden arcs
-        marked_points = mark_forward_orbit(forbidden_arcs)
-    
-    # Found set of all marked points
-    # Will construct Markov partition and automaton from them
-    
-    m = len(marked_points)
-    
-    states = []
-    dict_addresses_to_arcs = {}
+    arc_states = []
+    ang_states = []
+    dict_addresses_of_states = {}
     
     i = 0 # The address
-    c = 0 # Index for the arcs between the marked points
     
+    c = 0 # Index for the arcs between the marked angles
     while c < m - 1:
-        closed_arc = arc(marked_points[c], marked_points[c+1], True) # Never degenerate
-        interior = arc(marked_points[c], marked_points[c+1], False) 
-        
-        not_inside_a_forbidden_arc = True
-        
-        j = 0
-        F = len(forbidden_arcs)
-        
-        while j < F and not_inside_a_forbidden_arc:
-            forbidden_arc = forbidden_arcs[j]
-            
-            if arc_inclusion(interior, forbidden_arc) == True:
-                not_inside_a_forbidden_arc = False
-            j += 1
+        arc_state = arc(marked_angles[c], marked_angles[c+1], False)
+        # Leaving out the arc between the last marked angle and the first 
                 
-            # Tests if the arc between consecutive marked points is inside of a forbidden arc or not.
-            # Minor issue because forbidden arcs are open and these angle intervals are closed, so take interior
-            
-            # Old version below: 
-            #if (closed_arc.left_endpoint == forbidden_arc.left_endpoint and closed_arc.right_endpoint == forbidden_arc.right_endpoint):
-            #    not_a_forbidden_arc = False
-        
-        # If not, adds it to the list of states with its name and address
-        # Note that we are skipping for now the arc between the last marked point and the first
-        # In the non-dyadic case: this is forbidden
-        
-        if not_inside_a_forbidden_arc: 
+        name = 'S_' + str(i)
+        address = i
                 
-            name = 'A_' + str(i)
-            address = i
-                
-            if closed_arc.right_endpoint <= Fraction(1,2):
+        if arc_state.right_endpoint <= Fraction(1,2):
                 bit = 0
-            else:
-                bit = 1
+        else:
+            bit = 1
                     
-            states.append([name, address, bit])
-            dict_addresses_to_arcs[i] = closed_arc
+        arc_states.append([name, address, bit])
+        dict_addresses_of_states[i] = arc_state
                 
-            i += 1
-            
-        c += 1
-        
-    # If dyadic, adds last arc between marked points, of the form [t,0]: always not forbidden
-    
-    if theta_dyadic:    
-    
-        closed_arc = arc(marked_points[m-1], marked_points[0], True)
-        
-        name = 'A_' + str(i)
-        address = i
-        bit = 1 # The last arc in counterclockwise order is always labeled 1
-                
-        states.append([name, address, bit])
-        dict_addresses_to_arcs[i] = closed_arc
         i += 1
-        
-    number_of_non_degenerate_arc_states = i
+        c += 1
     
-    # We attribute names and addresses to the degenerate arcs and their images
-    # Each degenerate arc in the Markov partition, representing and isolated angle
-    # landing on the Hubbard tree, must fall into a periodic cycle
-    # Hence we add an extra state of the automaton for each element of its orbit,
-    # and this orbit is preperiodic
+    # Consider arc between last marked angle and the first (0)
+    arc_state = arc(marked_angles[m-1], marked_angles[0], False)
+        
+    name = 'S_' + str(i)
+    address = i
+    bit = 1 # The last arc in counterclockwise order is always labeled 1
+                
+    arc_states.append([name, address, bit])
+    dict_addresses_of_states[i] = arc_state
     
-    degenerate_orbits_addresses = [] # Keeps track of the orbits of the isolated angles / degenerate arcs
+    i += 1
     
-    for degenerate_arc in degenerate_arcs:
+    d = 0
+    while d < m:
+        ang_state = marked_angles[d]
         
-        degenerate_orbit = []
-        
-        angle = degenerate_arc.left_endpoint
-        
-        name = 'I_' + str(i)
+        name = 'N_' + str(i)
         address = i
         
-        if angle < Fraction(1,2):
+        if ang_state < Fraction(1,2):
             bit = 0
         else:
             bit = 1
             
-            # Note that 1/2 and 0 are never isolated angles / degenerate arcs, so there's no ambiguity with bits
-            
-        states.append([name, address, bit])
-        dict_addresses_to_arcs[i] = degenerate_arc
-        
-        degenerate_orbit.append(i)
+        ang_states.append([name, address, bit])
+        dict_addresses_of_states[i] = ang_state
         
         i += 1
+        d += 1
+        
+    # Collected all arc states and angle states
+    # Build full transition matrix
     
-        orbit = preperiodic_orbit(angle)
-        
-        # Now we add the states for each element in the forward orbit of the isolated angles.
-        
-        for angle_in_orbit in orbit[1:]:
-            
-            name = 'P_' + str(i)
-            address = i
-            
-            if angle_in_orbit < Fraction(1,2):
-                bit = 0
-            else:
-                bit = 1
-            
-            states.append([name, address, bit])
-            dict_addresses_to_arcs[i] = arc(angle_in_orbit, angle_in_orbit, True)
-            
-            degenerate_orbit.append(i)
-            
-            i += 1
-        
-        degenerate_orbits_addresses.append(degenerate_orbit)
-        
-    # degenerate_orbits_addresses keeps track of the addresses of the orbits of the degenerate arcs / isolated angles
-            
-    # We have finished adding all the states with their names, addresses and bits.
-    # We also kept track of the isolated angles and their names.
-    
-    # Now we must construct the transition matrix.
     # For this, we see how each arc-state maps over other arc states, and over the isolated angles
-    # Next, for each isolated angle, we just map it along its own separate orbit and created states
     
-    # Important remark: some of the P-states may actually have degenerate arcs that coincide.
-    # Ex.: Fraction(15,16)
-    # In this case, it is important that the orbit of the I and P-states only follows itself, and doesn't
-    # lead into these other P-states from orbits of different isolated angles
-    # To do this, we abuse the fact the orbits of isolated angles are indexed with consecutive addresses
-    
+    states = arc_states + ang_states
     S = len(states)
     
     M = np.zeros((S, S), dtype = int)
@@ -3309,49 +3178,85 @@ def automaton_and_adresses(theta):
     # By convention, M[i][j] means the transition from address j to i
     # So that matrix multiplication of states corresponds to column vectors: M*v
     
-    # For non-degenerate arcs, will always map (bijectively) over a union of arcs
-    
-    for j in range(number_of_non_degenerate_arc_states): # Here we range only over non-degenerate origin states first
+    for j in range(S):
+        state_j = dict_addresses_of_states[j]
         
-        arc_j = dict_addresses_to_arcs[j]
-        image_j = image_arc(arc_j) # No problem with image being smaller
-        
-        for i in dict_addresses_to_arcs:
+        if type(state_j) == arc: # if arc state
+            image_j = image_arc(state_j)
+            state_j_is_arc = True
+        if type(state_j) == Fraction: # if angle state
+            image_j = (2 * state_j) % 1
+            state_j_is_arc = False
             
-            arc_i = dict_addresses_to_arcs[i]
+        for i in range(S):
+            state_i = dict_addresses_of_states[i]
             
-            if arc_i.degenerate == False: # if destination arc is not degenerate, proceed as normal
-                if arc_inclusion(arc_i, image_j):
-                    M[i][j] = 1
-                    
-            if arc_i.degenerate == True: # if destination arc is degenerate, should only be mapped to if its an isolated angle from the forbidden region
-                if arc_inclusion(arc_i, image_j) and arc_i in degenerate_arcs:
-                    M[i][j] = 1
-                    
-    # Now we need to consider transitions from degenerate origin states.
-    # For this, we use the list degenerate_orbits_addresses and the orbits induced
-    
-    for degenerate_orbit in degenerate_orbits_addresses:
-        
-        length = len(degenerate_orbit)
-        
-        for l in range( length - 1):
-            M[degenerate_orbit[l+1], degenerate_orbit[l]] = 1
-            
-        M[degenerate_orbit[0]][degenerate_orbit[-1]] = 1
-    
-    # dict_addresses_to_arcs is also pretty useful!
+            if type(state_i) == arc: #if arc state
+                state_i_is_arc = True
+            if type(state_i) == Fraction: # if angle state
+                state_i_is_arc = False
                 
-    A = automaton(M, states)
+            if (state_j_is_arc == True):
+                if (state_i_is_arc == True):
+                    if arc_inclusion(state_i, image_j):
+                        M[i][j] = 1
+                    else:
+                        M[i][j] = 0
+                        
+                if (state_i_is_arc == False):
+                    if in_arc(state_i, image_j):
+                        M[i][j] = 1
+                    else:
+                        M[i][j] = 0
+                        
+            if (state_j_is_arc == False):
+                if (state_i_is_arc == False):
+                    if state_i == image_j:
+                        M[i][j] = 1
+                    else:
+                        M[i][j] = 0
                     
-    return [A, dict_addresses_to_arcs]
-
-####
-
-def hubbard_automaton(theta):
+    # Now we need to trim: iteratively erase the forbidden states, and states transitioning only to them
     
-    A = automaton_and_adresses(theta)[0]
-    return A
+    forbidden_states = []
+    forbidden_addresses = []
+    
+    for address in dict_addresses_of_states:
+        state = dict_addresses_of_states[address]
+        
+        state_is_in_forbidden_arc = False
+        
+        if type(state) == arc:
+            
+            f = 0
+            while f < F and state_is_in_forbidden_arc == False:
+                forbidden_arc = forbidden_arcs[f]
+                if arc_inclusion(state, forbidden_arc):
+                    forbidden_states.append(state)
+                    forbidden_addresses.append(address)
+                    state_is_in_forbidden_arc = True
+                f += 1
+        
+        if type(state) == Fraction:
+            
+            f = 0
+            while f < F and state_is_in_forbidden_arc == False:
+                forbidden_arc = forbidden_arcs[f]
+                if in_arc(state, forbidden_arc):
+                    forbidden_states.append(state)
+                    forbidden_addresses.append(address)
+                    state_is_in_forbidden_arc = True
+                f += 1
+        
+    # finished collection all forbidden_states and forbidden_addresses
+    # forbidden_addresses is ordered
+    # Now need to perform iterative trimming procedure
+    
+    A = automaton(M, states)
+    
+    A_trimmed = trim_states(A, forbidden_addresses)
+                    
+    return A_trimmed
 
 ####
 
@@ -3367,8 +3272,8 @@ def mating(theta1, theta2):
     # Returns the automaton corresponding to ray connections between the Hubbard trees in the mating
     # of the corresponding polynomials
     
-    A1 = hubbard_automaton(theta1)
-    A2 = hubbard_automaton(theta2)
+    A1 = hubbard_tree_automaton(theta1)
+    A2 = hubbard_tree_automaton(theta2)
     
     A = mating_automata(A1, A2)
     
