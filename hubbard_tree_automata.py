@@ -1879,8 +1879,10 @@ def angles_landing_at_P_preperiodic(theta):
             
             start_j = j - 1
             
-            angles_at_P = []
+            print(start_j)
             current_angle, current_partner = char_angle, char_partner
+            
+            # add all angle pairs in the forward orbit of the characteristic one
             
             while j - 1 < n:
                 
@@ -1889,16 +1891,23 @@ def angles_landing_at_P_preperiodic(theta):
                 j += 1
                 
                 current_angle = (2 * current_angle) % 1
-                current_partner = (2* current_partner) % 1
+                current_partner = (2 * current_partner) % 1
                 
             # Now j = n, return to start of period
+            # Add all angle pairs coming before the characteristic one in the period
+            
+            angle_pairs_before_characteristic = []
             
             for i in range(0, start_j):
                 
-                angles_at_P = [[current_angle, current_partner]] + angles_at_P 
+                angle_pairs_before_characteristic.append([current_angle, current_partner])
                 
                 current_angle = (2 * current_angle) % 1
                 current_partner = (2* current_partner) % 1
+            
+            # Attach them in the list, before the characteristic one
+                
+            angles_at_P = angle_pairs_before_characteristic + angles_at_P
             
             # Now need to pullback to the preperiodic ones
             
