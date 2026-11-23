@@ -233,6 +233,21 @@ def order_collection_of_arcs(C):
 
 ####
 
+def negated_collection(C):
+    # Given a collection of disjoint open arcs
+    # Creates a collection of their negations as above
+    
+    negated_arcs = []
+    
+    for arc_to_be_negated in C:
+        negated_arcs.append(negated_arc(arc_to_be_negated))
+        
+    ordered_collection_of_negated_arcs = order_collection_of_arcs(negated_arcs)
+    
+    return ordered_collection_of_negated_arcs
+        
+####
+
 def collection_union_arc(C, arc_extra):
     # Given a collection of disjoint open arcs and another open arc,
     # Returns to collection of disjoint arcs corresponding to the set-wise union 
@@ -3287,6 +3302,179 @@ def mating(theta1, theta2):
     A = mating_automata(A1, A2)
     
     return A
+
+####
+
+def union_mating(theta1, theta2):
+    # Given theta1 and theta2 rational angles
+    # constructs the union mating automaton of the two corresponding PCF quadratic polynomials
+    
+    F1 = forbidden_region(theta1)
+    neg_F2 = negated_collection(forbidden_region(theta2))
+    
+    F = union_of_arcs(F1, neg_F2)
+    
+    marked_angles = mark_forward_orbit(F)
+    
+    # Now, we just repeat the construction for the Hubbard tree automaton
+    
+    if Fraction(0,1) not in marked_angles:
+        marked_angles.append(Fraction(0,1))
+    if Fraction(1,2) not in marked_angles:
+        marked_angles.append(Fraction(1,2))
+    
+    marked_angles.sort()
+    
+    m = len(marked_angles)
+    
+    arc_states = []
+    ang_states = []
+    dict_addresses_of_states = {}
+    
+    i = 0 # The address
+    
+    c = 0 # Index for the arcs between the marked angles
+    while c < m - 1:
+        arc_state = arc(marked_angles[c], marked_angles[c+1], False)
+        # Leaving out the arc between the last marked angle and the first 
+                
+        name = 'S_' + str(i)
+        address = i
+                
+        if arc_state.right_endpoint <= Fraction(1,2):
+                bit = 0
+        else:
+            bit = 1
+                    
+        arc_states.append([name, address, bit])
+        dict_addresses_of_states[i] = arc_state
+                
+        i += 1
+        c += 1
+    
+    # Consider arc between last marked angle and the first (0)
+    arc_state = arc(marked_angles[m-1], marked_angles[0], False)
+        
+    name = 'S_' + str(i)
+    address = i
+    bit = 1 # The last arc in counterclockwise order is always labeled 1
+                
+    arc_states.append([name, address, bit])
+    dict_addresses_of_states[i] = arc_state
+    
+    i += 1
+    
+    d = 0
+    while d < m:
+        ang_state = marked_angles[d]
+        
+        name = 'N_' + str(i)
+        address = i
+        
+        if ang_state < Fraction(1,2):
+            bit = 0
+        else:
+            bit = 1
+            
+        ang_states.append([name, address, bit])
+        dict_addresses_of_states[i] = ang_state
+        
+        i += 1
+        d += 1
+        
+    # Collected all arc states and angle states
+    # Build full transition matrix
+    
+    # For this, we see how each arc-state maps over other arc states, and over the isolated angles
+    
+    states = arc_states + ang_states
+    S = len(states)
+    
+    M = np.zeros((S, S), dtype = int)
+    
+    # By convention, M[i][j] means the transition from address j to i
+    # So that matrix multiplication of states corresponds to column vectors: M*v
+    
+    for j in range(S):
+        state_j = dict_addresses_of_states[j]
+        
+        if type(state_j) == arc: # if arc state
+            image_j = image_arc(state_j)
+            state_j_is_arc = True
+        if type(state_j) == Fraction: # if angle state
+            image_j = (2 * state_j) % 1
+            state_j_is_arc = False
+            
+        for i in range(S):
+            state_i = dict_addresses_of_states[i]
+            
+            if type(state_i) == arc: #if arc state
+                state_i_is_arc = True
+            if type(state_i) == Fraction: # if angle state
+                state_i_is_arc = False
+                
+            if (state_j_is_arc == True):
+                if (state_i_is_arc == True):
+                    if arc_inclusion(state_i, image_j):
+                        M[i][j] = 1
+                    else:
+                        M[i][j] = 0
+                        
+                if (state_i_is_arc == False):
+                    if in_arc(state_i, image_j):
+                        M[i][j] = 1
+                    else:
+                        M[i][j] = 0
+                        
+            if (state_j_is_arc == False):
+                if (state_i_is_arc == False):
+                    if state_i == image_j:
+                        M[i][j] = 1
+                    else:
+                        M[i][j] = 0
+                    
+    # Now we need to trim: iteratively erase the forbidden states, and states transitioning only to them
+    
+    forbidden_states = []
+    forbidden_addresses = []
+    
+    for address in dict_addresses_of_states:
+        state = dict_addresses_of_states[address]
+        
+        state_is_in_forbidden_arc = False
+        
+        if type(state) == arc:
+            
+            f = 0
+            while f < F and state_is_in_forbidden_arc == False:
+                forbidden_arc = F[f]
+                if arc_inclusion(state, forbidden_arc):
+                    forbidden_states.append(state)
+                    forbidden_addresses.append(address)
+                    state_is_in_forbidden_arc = True
+                f += 1
+        
+        if type(state) == Fraction:
+            
+            f = 0
+            while f < F and state_is_in_forbidden_arc == False:
+                forbidden_arc = F[f]
+                if in_arc(state, forbidden_arc):
+                    forbidden_states.append(state)
+                    forbidden_addresses.append(address)
+                    state_is_in_forbidden_arc = True
+                f += 1
+        
+    # finished collection all forbidden_states and forbidden_addresses
+    # forbidden_addresses is ordered
+    # Now need to perform iterative trimming procedure
+    
+    A = automaton(M, states)
+    
+    A_trimmed = trim_states(A, forbidden_addresses)
+                    
+    return A_trimmed
+    
 
 ####
 

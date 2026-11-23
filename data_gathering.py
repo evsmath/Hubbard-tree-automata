@@ -364,6 +364,18 @@ def main3(theta, N):
             
     return
     
+####
+
+def main4(N):
+    for n in range(3, N+1):
+        dyadic = Fraction(1, 2**(n-1))
+        non = Fraction(1, 3 * (2**(n-2)))
+        
+        A = hta.mating(dyadic, non)
+        
+        print(A.size)
+    return
+
     
 
 
