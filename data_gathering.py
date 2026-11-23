@@ -371,7 +371,7 @@ def main4(N):
         dyadic = Fraction(1, 2**(n-1))
         non = Fraction(1, 3 * (2**(n-2)))
         
-        A = hta.mating(dyadic, non)
+        A = hta.union_mating(dyadic, non)
         
         print(A.size)
     return

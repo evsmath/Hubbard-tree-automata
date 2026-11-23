@@ -3305,6 +3305,8 @@ def mating(theta1, theta2):
 
 ####
 
+# Below: union automaton for the mating. Considerably faster mating procedure as it seems
+
 def union_mating(theta1, theta2):
     # Given theta1 and theta2 rational angles
     # constructs the union mating automaton of the two corresponding PCF quadratic polynomials
@@ -3312,9 +3314,10 @@ def union_mating(theta1, theta2):
     F1 = forbidden_region(theta1)
     neg_F2 = negated_collection(forbidden_region(theta2))
     
-    F = union_of_arcs(F1, neg_F2)
+    forbidden_arcs = union_of_arcs(F1, neg_F2)
+    F = len(forbidden_arcs)
     
-    marked_angles = mark_forward_orbit(F)
+    marked_angles = mark_forward_orbit(forbidden_arcs)
     
     # Now, we just repeat the construction for the Hubbard tree automaton
     
@@ -3447,7 +3450,7 @@ def union_mating(theta1, theta2):
             
             f = 0
             while f < F and state_is_in_forbidden_arc == False:
-                forbidden_arc = F[f]
+                forbidden_arc = forbidden_arcs[f]
                 if arc_inclusion(state, forbidden_arc):
                     forbidden_states.append(state)
                     forbidden_addresses.append(address)
@@ -3458,7 +3461,7 @@ def union_mating(theta1, theta2):
             
             f = 0
             while f < F and state_is_in_forbidden_arc == False:
-                forbidden_arc = F[f]
+                forbidden_arc = forbidden_arcs[f]
                 if in_arc(state, forbidden_arc):
                     forbidden_states.append(state)
                     forbidden_addresses.append(address)
@@ -3475,7 +3478,6 @@ def union_mating(theta1, theta2):
                     
     return A_trimmed
     
-
 ####
 
 # new idea: trim mating matrix to get rid of self.transitions and states that aren't transitioned to
