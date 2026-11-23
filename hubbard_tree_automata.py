@@ -2988,6 +2988,8 @@ def automaton_and_addresses(theta):
     
     i += 1
     
+    # Nowe we gather the angle states
+    
     d = 0
     while d < m:
         ang_state = marked_angles[d]
@@ -3171,6 +3173,8 @@ def hubbard_tree_automaton(theta):
     
     i += 1
     
+    # Nowe we gather the angle states
+    
     d = 0
     while d < m:
         ang_state = marked_angles[d]
@@ -3291,7 +3295,7 @@ def adresses_of_arcs(theta):
 
 ####
 
-def mating(theta1, theta2):
+def product_mating(theta1, theta2):
     # Given two angles, whose corresponding parameter rays land at parameters of the Mandelbrot set
     # Returns the automaton corresponding to ray connections between the Hubbard trees in the mating
     # of the corresponding polynomials
@@ -3366,6 +3370,8 @@ def union_mating(theta1, theta2):
     dict_addresses_of_states[i] = arc_state
     
     i += 1
+    
+    # Nowe we gather the angle states
     
     d = 0
     while d < m:

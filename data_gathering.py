@@ -22,23 +22,13 @@ import hubbard_tree_automata as hta
 
 ####
 
-def size_of_mating_with(theta, N):
-    # Fixed an angle theta
-    # Prints the sizes of all the mating automata of theta with a/2**N
+# Recall: we have constructed hubbard_tree_automaton(theta)
+# and two the two mating constructions: product_mating and union_mating
+# union_mating seems to be faster
 
-    denom = 2 ** N
-    
-    for a in range(1, denom):
-        
-        theta2 = Fraction(a, denom)
-        A = hta.mating(theta, theta2)
-        size = A.size
-        
-        print(f'Mating {theta} with {theta2}: size = {size}')
-        
-    return
-
-####
+#######################
+# AUXILIARY FUNCTIONS #
+#######################
 
 def leading_eig(M):
     # Input is a Perron-Frobenius matrix (np array)
@@ -67,7 +57,65 @@ def entropy(M):
     leading_eigenvalue = leading_eig(M).real
     
     return math.log(leading_eigenvalue)
+
+####
+
+def ignore_trivial(A):
+    # Input is an automaton A representing ray connections in a mating
+    # Removes the self-transitions, corresponding to the trivial angles 1/2 and 0,
+    # And then trims the automaton
+    # Usefulness: If the only ray connections are the trivial ones and preimages, the new automaton is empty
     
+    M = A.matrix
+    states = A.states
+    size = A.size
+    
+    new_M = M.copy()
+    
+    for j in range(0, size):
+        if new_M[j][j] == 1:
+            new_M[j][j] = 0
+    
+    new_A = hta.trim(hta.automaton(new_M, states))
+    
+    return new_A
+
+####
+
+def is_weakly_connected(M):
+    
+    n_components, labels = connected_components(csgraph = M, directed = True, connection = 'weak')
+    
+    if n_components == 1:
+        return True
+    
+    else:
+        return False
+    
+####
+
+##################
+# DATA GATHERING #
+##################
+
+####
+
+def size_of_mating_with_dyadics(theta, N):
+    # Fixed an angle theta
+    # Prints the sizes of all the mating automata of theta with a/2**N
+
+    denom = 2 ** N
+    
+    for a in range(1, denom):
+        
+        theta2 = Fraction(a, denom)
+        A = hta.union_mating(theta, theta2)
+        size = A.size
+        
+        print(f'Mating {theta} with {theta2}: size = {size}')
+        
+    return
+
 ####
 
 def entropy_of_mating_with(theta, N):
@@ -155,28 +203,6 @@ def plot_zero_entropy_angles_height(theta1, N):
 
 ####
 
-def ignore_trivial(A):
-    # Input is an automaton A representing ray connections in a mating
-    # Removes the self-transitions, corresponding to the trivial angles 1/2 and 0,
-    # And then trims the automaton
-    # Usefulness: If the only ray connections are the trivial ones and preimages, the new automaton is empty
-    
-    M = A.matrix
-    states = A.states
-    size = A.size
-    
-    new_M = M.copy()
-    
-    for j in range(0, size):
-        if new_M[j][j] == 1:
-            new_M[j][j] = 0
-    
-    new_A = hta.trim(hta.automaton(new_M, states))
-    
-    return new_A
-
-####
-
 def plot_only_dyadic_ray_connections(theta1, N):
     
     denom = 2 ** N
@@ -247,17 +273,7 @@ def info_self_matings(N):
     
     return
 
-
-def is_weakly_connected(M):
-    
-    n_components, labels = connected_components(csgraph = M, directed = True, connection = 'weak')
-    
-    if n_components == 1:
-        return True
-    
-    else:
-        return False
-    
+####
     
 def not_weakly_connected_up_to(N):
     
@@ -351,13 +367,13 @@ def main2():
 
 ####
 
-def main3(theta, N):
+def no_ray_connections_in_mating_with_dyadic(theta, N):
     
     power = 2**N
     
     for a in range(1, power):
         
-        A = hta.mating(theta, Fraction(a, power))
+        A = hta.union_mating(theta, Fraction(a, power))
         
         if A.size == 0:
             print(Fraction(a, power))
@@ -376,24 +392,85 @@ def main4(N):
         print(A.size)
     return
 
+####
+
+def size_of_self_mating_up_to(N):
     
+    for denom in range(2, N+1):
+        for a in range(1, denom):
+            
+            if math.gcd(a, denom) == 1:
+                
+                theta = Fraction(a,denom)
+                
+                A = hta.union_mating(theta, theta)
+                s = A.size
+                
+                print(f'Self-mating of {theta}: size = {s}')
 
+    return
 
+####
 
+def main6(theta, N):
+    
+    for n in range(3, N+1):
+        denom = 2 ** n
+        
+        first_non_zero_size_found = False
+        a = 1
+        
+        while a < denom and first_non_zero_size_found == False:
+            
+            theta2 = Fraction(a, denom)
+            A = hta.union_mating(theta, theta2)
+            size = A.size
+            
+            b = hta.dyadic_to_binary(theta2)
+            
+            if size != 0:
+                print(f'first non-zero size in mating with {theta}: is {b}')
+                first_non_zero_size_found = True
+                
+            a += 1
+        
+    return
 
+def main7(theta, N):
+    # Conjecture: mating of theta with phi, where phi is in -F, where F is the forbidden region for theta
+    # has empty mating automaton (except for specific tip cases)
+    
+    F = hta.forbidden_region(theta)
+    neg_F = hta.negated_collection(F)
+    f = len(F)
+    
+    for denom in range(2, N):
+        if denom % 2 == 1:
+            for a in range(1, denom):
+                if math.gcd(a, denom) == 1:
+                    phi = Fraction(a, denom)
+                    
+                    phi_in_neg_F = False
+                    
+                    i = 0
+                    while i < f and phi_in_neg_F == False:
+                        arc = neg_F[i]
+                        if hta.in_arc(phi, arc):        
+                            phi_in_neg_F = True
+                        else:
+                            i += 1
+                            
+                    # guaranteed phi is reduced form with odd denominator
+                    if phi_in_neg_F == True:
+                        A = hta.union_mating(theta, phi)
+                        size = A.size
+                        
+                        print(f'size of mating of {theta} with {phi}: is {size}')
 
+    return
 
-
-
-
-
-
-
-
-
-
-
-
+# Conjecture has been verified for theta = 1/6 up to denominator 80, false for 1/4
+# true for airplane
 
 
 
