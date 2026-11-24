@@ -241,7 +241,7 @@ def plot_zero_size_and_neg_F(theta1, N):
     plt.gca().set_aspect("equal")
     plt.xlim(-1.2, 1.2)
     plt.ylim(-1.2, 1.2)
-    plt.suptitle(f"Blue: zero size on matings with {theta1} \n Yellow: negated forbidden region")
+    plt.suptitle(f"Blue: non-zero size on matings with {theta1} \n Yellow: negated forbidden region")
     plt.show()
     
     return
