@@ -33,9 +33,10 @@ def fractions_equal(a , b):
 class arc:
     # Defines non-empty arcs of the circle, oriented counterclockwise
     
-    def __init__(self, left_endpoint, right_endpoint, closed):
+    def __init__(self, left_endpoint, right_endpoint, closed = False):
         # endpoints are in the form of Fractions, assumed to be in [0,1), 0 = 1
         # closed is a boolean; True for closed arcs, False for open
+        # Since most of the time we work with open arcs, default value for closed is False
         
         self.left_endpoint = left_endpoint
         self.right_endpoint = right_endpoint
@@ -193,7 +194,7 @@ def arc_inclusion(arc_1, arc_2):
 ####
 
 def negated_arc(arc_1):
-    # Given an arc, outputs the image under the map theta -> -theta
+    # Given an arc, outputs the image under the map theta -> -theta, orientation reversing
     
     a = arc_1.left_endpoint
     b = arc_1.right_endpoint
@@ -252,6 +253,7 @@ def collection_union_arc(C, arc_extra):
     # Given a collection of disjoint open arcs and another open arc,
     # Returns to collection of disjoint arcs corresponding to the set-wise union 
     # of the collection with the arc
+    # Remark: code is buggy is C does not consist of disjoint arcs
     
     C_ordered = order_collection_of_arcs(C)
     
@@ -319,8 +321,9 @@ def collection_union_arc(C, arc_extra):
 ####
 
 def union_of_arcs(C_1, C_2):
-    # Input is two collectons of disjoint arcs
+    # Input is two collections of disjoint arcs
     # Output is the disjoint union of open arcs formning the set-wise union of the two collections
+    # Remark: code is buggy is collections themselves are not disjoint
     
     current_collection = order_collection_of_arcs(C_1)
     
@@ -1741,8 +1744,6 @@ def periodic_branch_portraits(theta):
 ################################
 # FINDING THE FORBIDDEN REGION #
 ################################
-
-# Finds the forbidden region. Duh.
 
 ####
 
@@ -3485,11 +3486,3 @@ def union_mating(theta1, theta2):
     return A_trimmed
     
 ####
-
-# new idea: trim mating matrix to get rid of self.transitions and states that aren't transitioned to
-# seeks to find only the periodic cycles, check how many, how many components, etc
-
-####
-
-
-
