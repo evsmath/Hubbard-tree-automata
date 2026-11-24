@@ -168,6 +168,86 @@ def plot_zero_entropy_angles(theta1, N):
 
 ####
 
+def plot_zero_size(theta1, N):
+    # Fixed an angle theta1
+    # Outputs a plot of all dyadic angles swith denominator 2**N whose mating with theta1 has size non-zero
+    
+    denom = 2 ** N
+    
+    plt.grid()
+    
+    dots_x = []
+    dots_y = []
+    
+    for a in range(1, denom):
+        
+        theta2 = Fraction(a, denom)
+        A = hta.union_mating(theta1, theta2)
+        
+        if A.size != 0:
+            dots_x.append(math.cos(theta2 * math.tau))
+            dots_y.append(math.sin(theta2 * math.tau))
+            
+    plt.plot(dots_x, dots_y, '.')
+    plt.gca().set_aspect("equal")
+    plt.xlim(-1.2, 1.2)
+    plt.ylim(-1.2, 1.2)
+    plt.suptitle(f"Zero size on matings with {theta1}")
+    plt.show()
+    
+    return
+
+####
+
+def plot_zero_size_and_neg_F(theta1, N):
+    # Fixed an angle theta1
+    # Outputs a plot of all dyadic angles swith denominator 2**N whose mating with theta1 has size non-zero
+    
+    denom = 2 ** N
+    F = hta.forbidden_region(theta1)
+    neg_F = hta.negated_collection(F)
+    
+    plt.grid()
+    
+    dots_x_zero_size = []
+    dots_y_zero_size = []
+    
+    dots_x_in_neg_F = []
+    dots_y_in_neg_F = []
+    
+    for a in range(1, denom):
+        
+        theta2 = Fraction(a, denom)
+        A = hta.union_mating(theta1, theta2)
+        
+        if A.size != 0:
+            dots_x_zero_size.append(math.cos(theta2 * math.tau))
+            dots_y_zero_size.append(math.sin(theta2 * math.tau))
+            plt.plot(math.cos(theta2 * math.tau), math.sin(theta2 * math.tau), '.')
+            
+        in_forbidden_arc = False
+        
+        f = len(F)
+        i = 0
+        while i < f and in_forbidden_arc == False:
+            if hta.in_arc(theta2, neg_F[i]):
+                dots_x_in_neg_F.append(math.cos(theta2 * math.tau))
+                dots_y_in_neg_F.append(math.sin(theta2 * math.tau))
+                in_forbidden_arc = True
+            i += 1
+              
+    plt.plot(dots_x_zero_size, dots_y_zero_size, '.', color = 'blue')
+    plt.plot(dots_x_in_neg_F, dots_y_in_neg_F, '*', color = 'yellow')        
+    plt.gca().set_aspect("equal")
+    plt.xlim(-1.2, 1.2)
+    plt.ylim(-1.2, 1.2)
+    plt.suptitle(f"Blue: zero size on matings with {theta1} \n Yellow: negated forbidden region")
+    plt.show()
+    
+    return
+
+####
+
 def plot_zero_entropy_angles_height(theta1, N):
     # Fixed an angle theta1
     # Outputs a plot of all dyadic angle swith denominator 2**N whose mating with theta1 has zero entropy
