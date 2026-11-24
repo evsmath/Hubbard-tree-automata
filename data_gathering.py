@@ -237,7 +237,7 @@ def plot_zero_size_and_neg_F(theta1, N):
             i += 1
               
     plt.plot(dots_x_zero_size, dots_y_zero_size, '.', color = 'blue')
-    plt.plot(dots_x_in_neg_F, dots_y_in_neg_F, '*', color = 'yellow')        
+    plt.plot(dots_x_in_neg_F, dots_y_in_neg_F, '.', color = 'yellow')        
     plt.gca().set_aspect("equal")
     plt.xlim(-1.2, 1.2)
     plt.ylim(-1.2, 1.2)
